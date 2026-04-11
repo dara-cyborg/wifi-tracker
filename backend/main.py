@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import os
@@ -23,18 +22,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         
-        # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         
-        # HSTS (only in production)
         if os.getenv("ENVIRONMENT") == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         
-        # CSP (Content Security Policy)
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
@@ -51,30 +47,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("Starting WiFi Tracker application")
     start_scheduler()
     yield
-    # Shutdown
     logger.info("Shutting down WiFi Tracker application")
     stop_scheduler()
 
 app = FastAPI(title="WiFi Payment Tracker", lifespan=lifespan)
 
-# Add security middleware
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Add CORS middleware - restrict to specific origins
-allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=allowed_hosts
-)
-
 # CORS configuration
+allowed_origins = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[host.strip() for host in allowed_hosts],
+    allow_origins=[h.strip() for h in allowed_origins],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
@@ -90,7 +77,6 @@ app.include_router(router)
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/static")
 templates_path = os.path.join(os.path.dirname(__file__), "../frontend/templates")
 
-# Mount static files (CSS, JS, images, etc)
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 
