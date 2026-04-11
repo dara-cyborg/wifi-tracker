@@ -70,7 +70,7 @@
                     </div>
                     <div class="form-group">
                         <label class="required">MAC Address</label>
-                        <input type="text" id="addMac" placeholder="XX:XX:XX:XX:XX:XX" required>
+                        <input type="text" id="addMac" placeholder="XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX" required>
                     </div>
                     <div class="form-group">
                         <label class="required">Due Date</label>
@@ -289,7 +289,7 @@
             const data = {
                 room_number: document.getElementById('addRoom').value.trim(),
                 area: document.getElementById('addArea').value.trim(),
-                ssid: ssidValue.length > 0 ? ssidValue : null,
+                ssid: ssidValue.length > 0 ? ssidValue : "",
                 mac: document.getElementById('addMac').value.trim(),
                 due_date: document.getElementById('addDueDate').value
             };
@@ -321,7 +321,7 @@
             const data = {
                 room_number: document.getElementById('editRoom').value.trim(),
                 area: document.getElementById('editArea').value.trim(),
-                ssid: ssidValue.length > 0 ? ssidValue : null,
+                ssid: ssidValue.length > 0 ? ssidValue : "",
                 due_date: document.getElementById('editDueDate').value,
                 last_payment: paymentValue.length > 0 ? paymentValue : null
             };

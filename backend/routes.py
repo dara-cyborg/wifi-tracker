@@ -49,12 +49,15 @@ class ClientCreate(BaseModel):
     @classmethod
     def validate_mac_field(cls, v):
         if not validate_mac_address(v):
-            raise ValueError('MAC must be in format XX:XX:XX:XX:XX:XX')
+            raise ValueError('MAC must be in format XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX')
         return v
     
     @field_validator('ssid')
     @classmethod
     def validate_ssid_field(cls, v):
+        # Normalize: empty string stays empty, None stays None
+        if isinstance(v, str) and len(v.strip()) == 0:
+            return ""
         if v and not validate_ssid(v):
             raise ValueError('SSID must be 32 characters or less')
         return v
@@ -84,6 +87,9 @@ class ClientUpdate(BaseModel):
     @field_validator('ssid')
     @classmethod
     def validate_ssid_field(cls, v):
+        # Normalize: empty string stays empty, None stays None
+        if isinstance(v, str) and len(v.strip()) == 0:
+            return ""
         if v and not validate_ssid(v):
             raise ValueError('SSID must be 32 characters or less')
         return v

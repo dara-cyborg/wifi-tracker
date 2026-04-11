@@ -11,8 +11,8 @@ MAX_ATTEMPTS = int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
 LOCKOUT_MINUTES = int(os.getenv("LOGIN_LOCKOUT_MINUTES", "15"))
 
 def validate_mac_address(mac: str) -> bool:
-    """Validate MAC address format: XX:XX:XX:XX:XX:XX"""
-    pattern = r'^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$'
+    """Validate MAC address format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX"""
+    pattern = r'^([0-9A-Fa-f]{2}[:\-]){5}([0-9A-Fa-f]{2})$'
     return bool(re.match(pattern, mac.strip()))
 
 def validate_room_number(room: str) -> bool:
