@@ -20,13 +20,13 @@
         <div id="message"></div>
 
         <div class="search-box">
-            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="searchInput" placeholder="Search by room number, area, or SSID..." style="flex: 1;">
-                <button onclick="handleSearch()" class="btn" style="white-space: nowrap;">Search</button>
-                <button onclick="clearSearch()" class="btn btn-secondary" style="white-space: nowrap;">Clear</button>
+                <button onclick="handleSearch()" class="btn" style="white-space: nowrap; padding: 12px 12px; min-width: 44px;" title="Search">🔍</button>
+                <button onclick="clearSearch()" class="btn btn-secondary" style="white-space: nowrap; padding: 12px 12px; min-width: 44px;" title="Clear">✕</button>
             </div>
             <div class="sort-group">
-                <span style="font-weight: 600; color: #666; align-self: center; font-size: 13px;">Sort:</span>
+                <span style="font-weight: 600; color: #666; font-size: 13px; margin-right: 8px;">Sort:</span>
                 <button class="sort-btn" onclick="sortClients('asc')">A-Z</button>
                 <button class="sort-btn" onclick="sortClients('desc')">Z-A</button>
             </div>
