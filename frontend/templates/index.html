@@ -20,13 +20,22 @@
         <div id="message"></div>
 
         <div class="search-box">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="searchInput" placeholder="Search by room number, area, or SSID..." style="flex: 1;">
-                <button onclick="handleSearch()" class="btn" style="white-space: nowrap; padding: 12px 12px; min-width: 44px;" title="Search">🔍</button>
-                <button onclick="clearSearch()" class="btn btn-secondary" style="white-space: nowrap; padding: 12px 12px; min-width: 44px;" title="Clear">✕</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <div style="position: relative; flex: 1;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; pointer-events: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Search room, area, SSID..." style="flex: 1; width: 100%; padding-left: 38px;">
+                </div>
+                <button onclick="handleSearch()" class="btn" title="Search" style="padding: 12px; min-width: 44px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </button>
+                <button onclick="clearSearch()" class="btn btn-secondary" title="Clear" style="padding: 12px; min-width: 44px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
             </div>
-            <div class="sort-group">
-                <span style="font-weight: 600; color: #666; font-size: 13px; margin-right: 8px;">Sort:</span>
+            <div class="sort-group" style="margin-top: 10px;">
+                <span style="font-weight: 600; color: #666; align-self: center; font-size: 13px;">Sort:</span>
                 <button class="sort-btn" onclick="sortClients('asc')">A-Z</button>
                 <button class="sort-btn" onclick="sortClients('desc')">Z-A</button>
             </div>

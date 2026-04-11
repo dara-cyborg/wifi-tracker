@@ -32,8 +32,8 @@ tr:hover { background: #fafbfc; }
 .status.overdue { color: #991b1b; background: #fee2e2; }
 .status.active { color: #166534; background: #dcfce7; }
 
-.search-box { position: sticky; top: 0; background: white; padding: 16px 20px; border-radius: 0; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; border-top: none; z-index: 100; }
-.search-box input { padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; min-width: 0; }
+.search-box { position: sticky; top: 0; background: white; padding: 16px 20px; border-radius: 12px; margin: 0 0 24px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 100; }
+.search-box input { padding: 12px 16px 12px 38px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; min-width: 0; }
 .search-box input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
 .search-box input::placeholder { color: #999; font-weight: 300; }
 .search-box .btn { padding: 12px 20px; font-size: 14px; }
@@ -107,10 +107,10 @@ tr:hover { background: #fafbfc; }
     td[data-label="Actions"] .actions { flex-direction: row; width: 100%; }
     td[data-label="Actions"] .actions button { flex: 1; }
     
-    .search-box { padding: 12px; position: sticky; top: 0; z-index: 100; }
-    .search-box > div { flex-direction: row !important; gap: 8px; }
-    .search-box input { max-width: 100%; }
-    .sort-group { width: auto; gap: 6px; justify-content: center; margin: 12px auto 0; }
+    .search-box { padding: 12px 16px; position: sticky; top: 0; z-index: 100; border-radius: 12px; margin: 0 0 24px 0; }
+    .search-box > div:first-child { flex-direction: row !important; gap: 8px; }
+    .search-box input { flex: 1; width: 100%; }
+    .sort-group { width: auto; gap: 6px; justify-content: center; margin: 12px auto 0 !important; }
     .sort-btn { flex: none; padding: 8px 12px; font-size: 12px; width: auto; }
     
     .modal-content { max-width: 95%; max-height: 95vh; border-radius: 8px; }
