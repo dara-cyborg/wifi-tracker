@@ -33,15 +33,20 @@ tr:hover { background: #fafbfc; }
 .status.active { color: #166534; background: #dcfce7; }
 
 .search-box {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
     background: white;
-    padding: 12px 16px;
-    margin-bottom: 24px;
-    border-radius: 12px;
+    padding: 12px 32px;
+    margin-bottom: 0;
+    border-radius: 0;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    border: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+.table-container {
+    padding-top: 80px;
 }
 .search-row {
     display: flex;
@@ -180,6 +185,9 @@ tr:hover { background: #fafbfc; }
     td[data-label="Actions"] { display: flex !important; gap: 8px; margin-top: 12px; margin-bottom: 0; }
     td[data-label="Actions"] .actions { flex-direction: row; width: 100%; }
     td[data-label="Actions"] .actions button { flex: 1; }
+    
+    .search-box { padding: 12px 16px; }
+    .table-container { padding-top: 70px; }
     
     .modal-content { max-width: 95%; max-height: 95vh; border-radius: 8px; }
 }
