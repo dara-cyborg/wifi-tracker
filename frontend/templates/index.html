@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Tracker</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Payment Tracker</h1>
+            <p>Manage client payments and due dates</p>
+            <div class="button-group">
+                <button onclick="openModal('addModal')" class="btn">Add Client</button>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <div id="message"></div>
+
+        <div class="search-box">
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <input type="text" id="searchInput" placeholder="Search by room number, area, or SSID..." style="flex: 1;">
+                <button onclick="handleSearch()" class="btn" style="white-space: nowrap;">Search</button>
+                <button onclick="clearSearch()" class="btn btn-secondary" style="white-space: nowrap;">Clear</button>
+            </div>
+            <div class="sort-group">
+                <span style="font-weight: 600; color: #666; align-self: center; font-size: 13px;">Sort:</span>
+                <button class="sort-btn" onclick="sortClients('asc')">A-Z</button>
+                <button class="sort-btn" onclick="sortClients('desc')">Z-A</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Room</th>
+                    <th>Area</th>
+                    <th>SSID</th>
+                    <th>MAC Address</th>
+                    <th>Due Date</th>
+                    <th>Last Payment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="clientsList"></tbody>
+        </table>
+
+        <!-- Add Modal -->
+        <div id="addModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add Client</h2>
+                    <button type="button" class="modal-close" onclick="closeModal('addModal')">&times;</button>
+                </div>
+                <form id="addForm" onsubmit="submitAddForm(event)">
+                    <div class="form-group">
+                        <label class="required">Room Number</label>
+                        <input type="text" id="addRoom" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="required">Area</label>
+                        <input type="text" id="addArea" required>
+                    </div>
+                    <div class="form-group">
+                        <label>SSID (Optional)</label>
+                        <input type="text" id="addSsid">
+                    </div>
+                    <div class="form-group">
+                        <label class="required">MAC Address</label>
+                        <input type="text" id="addMac" placeholder="XX:XX:XX:XX:XX:XX" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="required">Due Date</label>
+                        <input type="date" id="addDueDate" required>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn">Add Client</button>
+                        <button type="button" onclick="closeModal('addModal')" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Client</h2>
+                    <button type="button" class="modal-close" onclick="closeModal('editModal')">&times;</button>
+                </div>
+                <form id="editForm" onsubmit="submitEditForm(event)">
+                    <div class="form-group">
+                        <label>MAC Address (Read-only)</label>
+                        <input type="text" id="editMac" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="required">Room Number</label>
+                        <input type="text" id="editRoom" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="required">Area</label>
+                        <input type="text" id="editArea" required>
+                    </div>
+                    <div class="form-group">
+                        <label>SSID (Optional)</label>
+                        <input type="text" id="editSsid">
+                    </div>
+                    <div class="form-group">
+                        <label class="required">Due Date</label>
+                        <input type="date" id="editDueDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Payment Date</label>
+                        <input type="date" id="editLastPayment">
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn">Update Client</button>
+                        <button type="button" onclick="closeModal('editModal')" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication on page load
+        window.addEventListener('load', () => {
+            fetch('/auth/check', { credentials: 'include' })
+                .then(r => { if (!r.ok) window.location.href = '/login.html'; else loadClients(); })
+                .catch(() => window.location.href = '/login.html');
+        });
+
+        function handleLogout() {
+            fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => window.location.href = '/login.html');
+        }
+
+        let currentClients = [];
+        let currentSort = null;
+
+        async function loadClients(search = null) {
+            try {
+                const url = new URL('/clients', window.location.origin);
+                if (search) url.searchParams.append('search', search);
+                
+                const response = await fetch(url, { credentials: 'include' });
+                currentClients = await response.json();
+                currentSort = null;
+                updateSortButtons();
+                renderClients(currentClients);
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error loading clients', 'danger');
+            }
+        }
+
+        function renderClients(clients) {
+            const tbody = document.getElementById('clientsList');
+            tbody.innerHTML = '';
+
+            if (clients.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999; padding: 20px;">No clients found</td></tr>';
+                return;
+            }
+
+            clients.forEach(client => {
+                const today = new Date().toISOString().split('T')[0];
+                let status = 'Active';
+                let statusClass = 'active';
+                
+                // Overdue if: today > due_date AND (no payment OR payment < due_date)
+                if (today > client.due_date && (!client.last_payment || client.last_payment < client.due_date)) {
+                    status = 'Overdue';
+                    statusClass = 'overdue';
+                }
+                
+                const row = `
+                    <tr>
+                        <td data-label="Room">${client.room_number}</td>
+                        <td data-label="Area">${client.area}</td>
+                        <td data-label="SSID">${client.ssid || '—'}</td>
+                        <td data-label="MAC" style="font-size: 12px; font-family: monospace;">${client.mac || '—'}</td>
+                        <td data-label="Due Date">${client.due_date}</td>
+                        <td data-label="Last Payment">${client.last_payment || '—'}</td>
+                        <td data-label="Status"><span class="status ${statusClass}">${status}</span></td>
+                        <td data-label="Actions" class="actions">
+                            <button onclick="openEditModal('${client.mac}')" class="btn">Edit</button>
+                            <button onclick="deleteClient('${client.mac}')" class="btn btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function handleSearch() {
+            const search = document.getElementById('searchInput').value.trim();
+            loadClients(search || null);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            loadClients();
+        }
+
+        function sortClients(order) {
+            currentSort = order;
+            updateSortButtons();
+            
+            const sorted = [...currentClients];
+            sorted.sort((a, b) => {
+                const roomA = a.room_number.toLowerCase();
+                const roomB = b.room_number.toLowerCase();
+                
+                if (order === 'asc') {
+                    return roomA.localeCompare(roomB);
+                } else {
+                    return roomB.localeCompare(roomA);
+                }
+            });
+
+            renderClients(sorted);
+        }
+
+        function updateSortButtons() {
+            const buttons = document.querySelectorAll('.sort-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (currentSort === 'asc') {
+                buttons[0].classList.add('active');
+            } else if (currentSort === 'desc') {
+                buttons[1].classList.add('active');
+            }
+        }
+
+        async function deleteClient(mac) {
+            if (!confirm('Delete this client?')) return;
+            try {
+                const response = await fetch(`/clients/${mac}`, { method: 'DELETE', credentials: 'include' });
+                if (response.ok) {
+                    showMessage('Client deleted', 'success');
+                    loadClients();
+                } else {
+                    showMessage('Failed to delete client', 'danger');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'danger');
+            }
+        }
+
+        function showMessage(msg, type) {
+            const div = document.getElementById('message');
+            div.className = `alert alert-${type}`;
+            div.textContent = msg;
+            setTimeout(() => div.textContent = '', 5000);
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            if (modalId === 'addModal') {
+                document.getElementById('addForm').reset();
+            }
+        }
+
+        function openEditModal(mac) {
+            fetch(`/clients/${mac}`, { credentials: 'include' })
+                .then(r => r.json())
+                .then(client => {
+                    document.getElementById('editMac').value = client.mac;
+                    document.getElementById('editRoom').value = client.room_number;
+                    document.getElementById('editArea').value = client.area;
+                    document.getElementById('editSsid').value = client.ssid || '';
+                    document.getElementById('editDueDate').value = client.due_date;
+                    document.getElementById('editLastPayment').value = client.last_payment || '';
+                    openModal('editModal');
+                })
+                .catch(err => showMessage('Error loading client', 'danger'));
+        }
+
+        async function submitAddForm(e) {
+            e.preventDefault();
+            const ssidValue = document.getElementById('addSsid').value.trim();
+            const data = {
+                room_number: document.getElementById('addRoom').value.trim(),
+                area: document.getElementById('addArea').value.trim(),
+                ssid: ssidValue.length > 0 ? ssidValue : null,
+                mac: document.getElementById('addMac').value.trim(),
+                due_date: document.getElementById('addDueDate').value
+            };
+            try {
+                const response = await fetch('/clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    showMessage('Client added successfully', 'success');
+                    closeModal('addModal');
+                    loadClients();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.detail || 'Failed to add client', 'danger');
+                }
+            } catch (err) {
+                showMessage('Error: ' + err.message, 'danger');
+            }
+        }
+
+        async function submitEditForm(e) {
+            e.preventDefault();
+            const mac = document.getElementById('editMac').value;
+            const ssidValue = document.getElementById('editSsid').value.trim();
+            const paymentValue = document.getElementById('editLastPayment').value;
+            const data = {
+                room_number: document.getElementById('editRoom').value.trim(),
+                area: document.getElementById('editArea').value.trim(),
+                ssid: ssidValue.length > 0 ? ssidValue : null,
+                due_date: document.getElementById('editDueDate').value,
+                last_payment: paymentValue.length > 0 ? paymentValue : null
+            };
+            try {
+                const response = await fetch(`/clients/${mac}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    showMessage('Client updated successfully', 'success');
+                    closeModal('editModal');
+                    loadClients();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.detail || 'Failed to update client', 'danger');
+                }
+            } catch (err) {
+                showMessage('Error: ' + err.message, 'danger');
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const addModal = document.getElementById('addModal');
+            const editModal = document.getElementById('editModal');
+            if (e.target === addModal) closeModal('addModal');
+            if (e.target === editModal) closeModal('editModal');
+        });
+    </script>
+</body>
+</html>

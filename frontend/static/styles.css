@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@100;300;400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Kantumruy Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 32px 20px; color: #1a1a1a; min-height: 100vh; }
+.container { max-width: 1200px; margin: 0 auto; }
+
+header { background: linear-gradient(135deg, #fff 0%, #f8fafc 100%); padding: 32px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+h1 { color: #000; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; }
+p { color: #666; font-size: 16px; margin-top: 8px; font-weight: 300; }
+
+.button-group { margin-top: 24px; display: flex; gap: 12px; }
+button, a.btn { background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; font-family: 'Kantumruy Pro', sans-serif; }
+button:hover, a.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+.btn-danger { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+.btn-danger:hover { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%); }
+.btn-secondary { background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%); color: #333; }
+.btn-secondary:hover { background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%); }
+
+table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+th, td { padding: 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+th { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); font-weight: 600; color: #000; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase; }
+tr:hover { background: #fafbfc; }
+
+.alert { padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; font-weight: 500; border-left: 4px solid; }
+.alert-danger { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b; border-left-color: #dc2626; }
+.alert-success { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; border-left-color: #16a34a; }
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions a, .actions button { font-size: 12px; padding: 8px 14px; border-radius: 6px; }
+
+.status { font-size: 13px; color: #666; font-weight: 600; padding: 6px 12px; border-radius: 6px; display: inline-block; }
+.status.overdue { color: #991b1b; background: #fee2e2; }
+.status.active { color: #166534; background: #dcfce7; }
+
+.search-box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+.search-box input { padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; min-width: 0; }
+.search-box input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
+.search-box input::placeholder { color: #999; font-weight: 300; }
+.search-box .btn { padding: 12px 20px; font-size: 14px; }
+
+.sort-group { display: flex; gap: 8px; }
+.sort-btn { padding: 10px 16px; border: 2px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; color: #333; }
+.sort-btn:hover { border-color: #000; background: #f9f9f9; }
+.sort-btn.active { background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); color: white; border-color: #000; }
+
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; padding: 0; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #e5e7eb; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); }
+.modal-header h2 { color: #000; font-size: 20px; font-weight: 700; margin: 0; }
+.modal-close { background: none; border: none; font-size: 28px; color: #666; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
+.modal-close:hover { color: #000; }
+.modal form { padding: 24px; }
+.modal .form-group { margin-bottom: 16px; }
+.modal .form-group label { display: block; margin-bottom: 6px; color: #000; font-weight: 600; font-size: 13px; font-family: 'Kantumruy Pro', sans-serif; }
+.modal .form-group input { width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; }
+.modal .form-group input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
+.modal .form-group input::placeholder { color: #999; }
+.modal .form-group input[readonly] { background: #f3f4f6; cursor: not-allowed; }
+.modal .button-group { display: flex; gap: 10px; margin-top: 20px; }
+.modal .button-group button { flex: 1; padding: 10px; }
+.required::after { content: ' *'; color: #dc2626; font-weight: 700; }
+
+@media (max-width: 768px) {
+    body { padding: 16px 12px; }
+    h1 { font-size: 24px; }
+    p { font-size: 14px; }
+    header { padding: 20px; margin-bottom: 20px; }
+    .button-group { flex-direction: column; }
+    .button-group button { width: 100%; }
+    
+    table { display: block; box-shadow: none; }
+    thead { display: none; }
+    tbody { display: flex; flex-direction: column; gap: 16px; }
+    tr { background: white; padding: 16px !important; border: none; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; margin: 0; }
+    td { padding: 0 !important; border: none !important; display: block; margin-bottom: 8px; }
+    td[data-label="SSID"] { display: none; }
+    
+    td[data-label="Room"] { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 4px; }
+    td[data-label="Room"]::before { content: none; }
+    td[data-label="Area"] { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 12px; }
+    td[data-label="Area"]::before { content: none; }
+    td[data-label="MAC"] { font-size: 12px; font-family: monospace; background: #f3f4f6; padding: 8px 12px !important; border-radius: 6px; margin-bottom: 12px; word-break: break-all; width: fit-content; }
+    td[data-label="MAC"]::before { content: none; }
+    
+    td[data-label="Due Date"],
+    td[data-label="Last Payment"],
+    td[data-label="Status"] { 
+        display: inline-block !important; 
+        font-size: 11px; 
+        padding: 4px 10px !important; 
+        border-radius: 4px; 
+        margin-right: 8px; 
+        margin-bottom: 0 !important; 
+        width: fit-content !important;
+        flex: none !important;
+    }
+    td[data-label="Due Date"] { background: #dbeafe; color: #1e40af; font-weight: 500; }
+    td[data-label="Due Date"]::before { content: none; }
+    td[data-label="Last Payment"] { background: #e0e7ff; color: #3730a3; font-weight: 500; }
+    td[data-label="Last Payment"]::before { content: none; }
+    td[data-label="Status"] { background: white; border-left: 3px solid; padding-left: 8px !important; font-weight: 600; }
+    td[data-label="Status"]::before { content: none; }
+    td[data-label="Last Payment"] { margin-bottom: 12px; }
+    
+    td[data-label="Actions"] { display: flex !important; gap: 8px; margin-top: 12px; margin-bottom: 0; }
+    td[data-label="Actions"] .actions { flex-direction: row; width: 100%; }
+    td[data-label="Actions"] .actions button { flex: 1; }
+    
+    .search-box { padding: 16px; }
+    .search-box > div { flex-direction: column !important; }
+    .search-box input { max-width: 100%; }
+    .sort-group { width: 100%; gap: 6px; }
+    .sort-btn { flex: 1; padding: 8px 12px; font-size: 12px; }
+    
+    .modal-content { max-width: 95%; max-height: 95vh; border-radius: 8px; }
+}
