@@ -247,10 +247,11 @@ def update_client(mac: str, update_data: ClientUpdate, db: Session = Depends(get
         client.ssid = update_data.ssid
     if update_data.due_date:
         client.due_date = update_data.due_date
-    if update_data.last_payment:
-        client.last_payment = update_data.last_payment
-        # Auto-advance due date to next month when payment is marked
-        client.due_date = get_next_monthly_due_date(client.due_date)
+    if update_data.last_payment is not None:
+        if client.last_payment != update_data.last_payment:
+            client.last_payment = update_data.last_payment
+            # Auto-advance due date to next month when payment is marked
+            client.due_date = get_next_monthly_due_date(client.due_date)
     
     db.commit()
     db.refresh(client)
