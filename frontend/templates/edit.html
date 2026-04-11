@@ -91,7 +91,7 @@
             }
 
             try {
-                const response = await fetch(`/clients/${mac}`);
+                const response = await fetch(`/clients/${mac}`, { credentials: 'include' });
                 if (response.ok) {
                     const client = await response.json();
                     document.getElementById('mac').value = client.mac;
@@ -125,6 +125,7 @@
                 const response = await fetch(`/clients/${mac}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
 
