@@ -119,11 +119,8 @@ tr:hover { background: #fafbfc; }
     td[data-label="Actions"] .actions { flex-direction: row; width: 100%; }
     td[data-label="Actions"] .actions button { flex: 1; }
     
-    .search-box { padding: 12px 16px; position: sticky; top: 0; z-index: 100; border-radius: 12px; margin: 0 0 24px 0; }
-    .search-box > div:first-child { flex-direction: row !important; gap: 8px; }
-    .search-box input { flex: 1; width: 100%; }
-    .sort-group { width: auto; gap: 6px; justify-content: center; margin: 12px auto 0 !important; }
-    .sort-btn { flex: none; padding: 8px 12px; font-size: 12px; width: auto; }
+    .search-box { padding: 12px 16px; }
+    .table-container { padding-top: 70px; }
     
     .modal-content { max-width: 95%; max-height: 95vh; border-radius: 8px; }
 }
