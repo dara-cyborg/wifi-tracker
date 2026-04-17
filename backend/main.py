@@ -6,9 +6,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import os
 import logging
+from slowapi.errors import RateLimitExceeded
+from starlette.responses import JSONResponse
 from backend.database import init_db
 from backend.routes import router
 from backend.scheduler import start_scheduler, stop_scheduler
+from backend.security import limiter
 
 # Configure logging
 logging.basicConfig(
@@ -54,6 +57,17 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 app = FastAPI(title="WiFi Payment Tracker", lifespan=lifespan)
+
+# Attach limiter to app
+app.state.limiter = limiter
+
+# Rate limit exception handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request, exc):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded"}
+    )
 
 app.add_middleware(SecurityHeadersMiddleware)
 

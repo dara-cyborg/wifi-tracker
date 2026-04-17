@@ -13,7 +13,7 @@ class Client(Base):
     area = Column(String, nullable=False)
     ssid = Column(String)
     mac = Column(String, unique=True, index=True, nullable=False)
-    due_date = Column(Date, nullable=False)
+    due_day = Column(Integer, nullable=False)  # Day of month (1-31)
     last_payment = Column(Date)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

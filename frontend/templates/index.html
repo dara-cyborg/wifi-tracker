@@ -50,7 +50,7 @@
                         <th>Area</th>
                         <th>SSID</th>
                         <th>MAC Address</th>
-                        <th>Due Date</th>
+                        <th>Due Day</th>
                         <th>Last Payment</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -85,8 +85,8 @@
                         <input type="text" id="addMac" placeholder="XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX" required>
                     </div>
                     <div class="form-group">
-                        <label class="required">Due Date</label>
-                        <input type="date" id="addDueDate" required>
+                        <label class="required">Due Day (1-31)</label>
+                        <input type="number" id="addDueDay" min="1" max="31" required>
                     </div>
                     <div class="button-group">
                         <button type="submit" class="btn">Add Client</button>
@@ -121,8 +121,8 @@
                         <input type="text" id="editSsid">
                     </div>
                     <div class="form-group">
-                        <label class="required">Due Date</label>
-                        <input type="date" id="editDueDate" required>
+                        <label class="required">Due Day (1-31)</label>
+                        <input type="number" id="editDueDay" min="1" max="31" required>
                     </div>
                     <div class="form-group">
                         <label>Last Payment Date</label>
@@ -200,14 +200,13 @@
             }
 
             clients.forEach(client => {
-                const today = new Date().toISOString().split('T')[0];
-                let status = 'Active';
                 let statusClass = 'active';
+                let statusDisplay = client.status;
                 
-                // Overdue if: today > due_date AND (no payment OR payment < due_date)
-                if (today > client.due_date && (!client.last_payment || client.last_payment < client.due_date)) {
-                    status = 'Overdue';
+                if (statusDisplay.includes('overdue')) {
                     statusClass = 'overdue';
+                } else if (statusDisplay === 'Not set') {
+                    statusClass = 'not-set';
                 }
                 
                 const row = `
@@ -216,9 +215,9 @@
                         <td data-label="Area">${client.area}</td>
                         <td data-label="SSID">${client.ssid || '—'}</td>
                         <td data-label="MAC" style="font-size: 12px; font-family: monospace;">${client.mac || '—'}</td>
-                        <td data-label="Due Date">${client.due_date}</td>
+                        <td data-label="Due Day">${client.due_day}</td>
                         <td data-label="Last Payment">${client.last_payment || '—'}</td>
-                        <td data-label="Status"><span class="status ${statusClass}">${status}</span></td>
+                        <td data-label="Status"><span class="status ${statusClass}">${statusDisplay}</span></td>
                         <td data-label="Actions" class="actions">
                             <button onclick="openEditModal('${client.mac}')" class="btn">Edit</button>
                             <button onclick="deleteClient('${client.mac}')" class="btn btn-danger">Delete</button>
@@ -310,7 +309,7 @@
                     document.getElementById('editRoom').value = client.room_number;
                     document.getElementById('editArea').value = client.area;
                     document.getElementById('editSsid').value = client.ssid || '';
-                    document.getElementById('editDueDate').value = client.due_date;
+                    document.getElementById('editDueDay').value = client.due_day;
                     document.getElementById('editLastPayment').value = client.last_payment || '';
                     openModal('editModal');
                 })
@@ -325,7 +324,7 @@
                 area: document.getElementById('addArea').value.trim(),
                 ssid: ssidValue.length > 0 ? ssidValue : "",
                 mac: document.getElementById('addMac').value.trim(),
-                due_date: document.getElementById('addDueDate').value
+                due_day: parseInt(document.getElementById('addDueDay').value)
             };
             try {
                 const response = await fetch('/clients', {
@@ -356,7 +355,7 @@
                 room_number: document.getElementById('editRoom').value.trim(),
                 area: document.getElementById('editArea').value.trim(),
                 ssid: ssidValue.length > 0 ? ssidValue : "",
-                due_date: document.getElementById('editDueDate').value,
+                due_day: parseInt(document.getElementById('editDueDay').value),
                 last_payment: paymentValue.length > 0 ? paymentValue : null
             };
             try {

@@ -33,6 +33,7 @@ tr:hover { background: #fafbfc; }
 .status { font-size: 13px; color: #666; font-weight: 600; padding: 6px 12px; border-radius: 6px; display: inline-block; }
 .status.overdue { color: #991b1b; background: #fee2e2; }
 .status.active { color: #166534; background: #dcfce7; }
+.status.not-set { color: #7c2d12; background: #fed7aa; }
 
 .search-box {
     position: fixed;
