@@ -89,7 +89,7 @@ def format_alert_message(overdue, active, not_set):
         message += "\n"
     
     if not_set:
-        message += f"⏳ មិនទាន់ដាក់មូលនិធិ ({len(not_set)} នាក់):\n"
+        message += f"⏳ មិនទាន់បង់មាន ({len(not_set)} នាក់):\n"
         for client in not_set:
             message += f"• បន្ទប់លេខ {client.room_number} - {client.area}\n"
     
