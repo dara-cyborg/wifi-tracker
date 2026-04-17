@@ -4,6 +4,11 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict
 from fastapi import HTTPException, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
 
 # Login attempt tracking
 login_attempts: Dict[str, list] = {}

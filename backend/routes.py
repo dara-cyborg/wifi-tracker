@@ -8,7 +8,7 @@ from backend.database import get_db
 from backend.models import Client
 from backend.security import (
     validate_mac_address, validate_room_number, validate_area, validate_ssid,
-    validate_login_attempt, record_login_attempt
+    validate_login_attempt, record_login_attempt, limiter
 )
 
 router = APIRouter()
@@ -129,8 +129,9 @@ def get_current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Invalid session")
 
 
+@limiter.limit("10/minute")
 @router.post("/login")
-def login(request: LoginRequest, response: Response):
+def login(request: Request, login_request: LoginRequest, response: Response):
     # Verify credentials are configured
     if not ADMIN_USERNAME or not ADMIN_PASSWORD:
         raise HTTPException(
@@ -139,18 +140,18 @@ def login(request: LoginRequest, response: Response):
         )
     
     # Rate limiting check
-    validate_login_attempt(request.username)
+    validate_login_attempt(login_request.username)
     
     # Security: Use constant-time comparison to prevent timing attacks
-    username_match = request.username == ADMIN_USERNAME
-    password_match = request.password == ADMIN_PASSWORD
+    username_match = login_request.username == ADMIN_USERNAME
+    password_match = login_request.password == ADMIN_PASSWORD
     
     if username_match and password_match:
-        record_login_attempt(request.username, success=True)
+        record_login_attempt(login_request.username, success=True)
         
         # Create signed session token with username and timestamp
         session_data = {
-            "username": request.username,
+            "username": login_request.username,
             "timestamp": datetime.utcnow().isoformat()
         }
         token = serializer.dumps(session_data)
@@ -168,7 +169,7 @@ def login(request: LoginRequest, response: Response):
         return {"status": "success", "message": "Login successful"}
     
     # Record failed attempt
-    record_login_attempt(request.username, success=False)
+    record_login_attempt(login_request.username, success=False)
     
     # Generic error message (don't reveal if username exists)
     raise HTTPException(
@@ -176,7 +177,7 @@ def login(request: LoginRequest, response: Response):
         detail="Invalid username or password"
     )
 
-
+@limiter.limit("60/minute")
 @router.get("/auth/check")
 def check_auth(request: Request):
     """Validate session cookie and return authentication status"""
@@ -196,16 +197,16 @@ def check_auth(request: Request):
     except BadSignature:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-
+@limiter.limit("60/minute")
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
     """Clear session cookie and logout"""
     response.delete_cookie("session")
     return {"status": "success", "message": "Logged out"}
 
-
+@limiter.limit("60/minute")
 @router.get("/clients")
-def list_clients(search: str = Query(None), db: Session = Depends(get_db)):
+def list_clients(request: Request, search: str = Query(None), db: Session = Depends(get_db)):
     from backend.services import get_client_status
     
     query = db.query(Client)
@@ -238,8 +239,9 @@ def list_clients(search: str = Query(None), db: Session = Depends(get_db)):
     return result
 
 
+@limiter.limit("30/minute")
 @router.post("/clients")
-def create_client(client: ClientCreate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_client(request: Request, client: ClientCreate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     existing = db.query(Client).filter(Client.mac == client.mac).first()
     if existing:
         raise HTTPException(status_code=400, detail="MAC address already exists")
@@ -257,8 +259,9 @@ def create_client(client: ClientCreate, user: dict = Depends(get_current_user), 
     return new_client
 
 
+@limiter.limit("60/minute")
 @router.get("/clients/{mac}")
-def get_client(mac: str, db: Session = Depends(get_db)):
+def get_client(request: Request, mac: str, db: Session = Depends(get_db)):
     from backend.services import get_client_status
     
     client = db.query(Client).filter(Client.mac == mac).first()
@@ -277,9 +280,9 @@ def get_client(mac: str, db: Session = Depends(get_db)):
     }
     return client_dict
 
-
+@limiter.limit("30/minute")
 @router.put("/clients/{mac}")
-def update_client(mac: str, update_data: ClientUpdate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_client(request: Request, mac: str, update_data: ClientUpdate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -299,9 +302,9 @@ def update_client(mac: str, update_data: ClientUpdate, user: dict = Depends(get_
     db.refresh(client)
     return client
 
-
+@limiter.limit("30/minute")
 @router.delete("/clients/{mac}")
-def delete_client(mac: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_client(request: Request, mac: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -310,9 +313,9 @@ def delete_client(mac: str, user: dict = Depends(get_current_user), db: Session 
     db.commit()
     return {"status": "deleted", "mac": mac}
 
-
+@limiter.limit("5/minute")
 @router.post("/send-alert")
-def send_alert(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def send_alert(request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     """Send payment alert via Telegram immediately (admin only)"""
     from backend.services import get_overdue_clients, get_active_clients, get_not_set_clients, format_alert_message
     from backend.notify import send_telegram_message
