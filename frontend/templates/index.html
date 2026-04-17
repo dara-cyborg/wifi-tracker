@@ -13,6 +13,7 @@
             <p>Manage client payments and due dates</p>
             <div class="button-group">
                 <button onclick="openModal('addModal')" class="btn">Add Client</button>
+                <button onclick="sendTelegramAlert()" class="btn btn-warning" title="Send alert via Telegram immediately">Send Alert</button>
                 <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
             </div>
         </header>
@@ -146,6 +147,28 @@
 
         function handleLogout() {
             fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => window.location.href = '/login.html');
+        }
+
+        async function sendTelegramAlert() {
+            if (!confirm('Send payment alert via Telegram?')) return;
+            
+            try {
+                const response = await fetch('/send-alert', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage('✅ Alert sent successfully', 'success');
+                } else {
+                    const error = await response.json();
+                    showMessage('❌ Failed to send alert: ' + error.detail, 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('❌ Error sending alert', 'danger');
+            }
         }
 
         let currentClients = [];

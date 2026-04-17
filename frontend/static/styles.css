@@ -15,6 +15,8 @@ button:hover, a.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px 
 .btn-danger:hover { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%); }
 .btn-secondary { background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%); color: #333; }
 .btn-secondary:hover { background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%); }
+.btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.btn-warning:hover { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
 
 table { width: 100%; background: white; border-collapse: collapse; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
 th, td { padding: 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
