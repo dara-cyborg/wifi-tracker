@@ -27,9 +27,10 @@ def get_due_soon_clients(db: Session):
 
 def get_active_clients(db: Session):
     today = date.today()
+    three_days_later = today + timedelta(days=3)
     return db.query(Client).filter(
         Client.last_payment.isnot(None),
-        Client.due_date >= today
+        Client.due_date > three_days_later
     ).all()
 
 
