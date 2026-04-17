@@ -267,3 +267,31 @@ def delete_client(mac: str, db: Session = Depends(get_db)):
     db.delete(client)
     db.commit()
     return {"status": "deleted", "mac": mac}
+
+
+@router.post("/send-alert")
+def send_alert(db: Session = Depends(get_db)):
+    """Send payment alert via Telegram immediately (admin only)"""
+    from backend.services import get_overdue_clients, get_due_soon_clients, get_active_clients, format_alert_message
+    from backend.notify import send_telegram_message
+    
+    try:
+        overdue = get_overdue_clients(db)
+        due_soon = get_due_soon_clients(db)
+        active = get_active_clients(db)
+        
+        message = format_alert_message(overdue, due_soon, active)
+        success = send_telegram_message(message)
+        
+        if success:
+            return {"status": "success", "message": "Alert sent successfully"}
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to send Telegram message"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error sending alert: {str(e)}"
+        )

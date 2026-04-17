@@ -1,11 +1,18 @@
 from datetime import datetime, date, timedelta
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from backend.models import Client
 
 
 def get_overdue_clients(db: Session):
     today = date.today()
-    return db.query(Client).filter(Client.due_date < today).all()
+    return db.query(Client).filter(
+        Client.due_date < today,
+        or_(
+            Client.last_payment.is_(None),
+            Client.last_payment < Client.due_date
+        )
+    ).all()
 
 
 def get_due_soon_clients(db: Session):
