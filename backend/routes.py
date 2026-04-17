@@ -1,22 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_validator
-from datetime import date, timedelta, datetime
-import calendar
+from datetime import date, datetime
 import os
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from backend.database import get_db
 from backend.models import Client
 from backend.security import (
     validate_mac_address, validate_room_number, validate_area, validate_ssid,
-    validate_login_attempt, record_login_attempt, sanitize_string
+    validate_login_attempt, record_login_attempt
 )
 
 router = APIRouter()
 
 # Load credentials and secrets from environment variables
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Session serializer
@@ -29,7 +28,7 @@ class ClientCreate(BaseModel):
     area: str
     ssid: str = None
     mac: str
-    due_date: date
+    due_day: int  # Day of month (1-31)
     
     @field_validator('room_number')
     @classmethod
@@ -61,13 +60,20 @@ class ClientCreate(BaseModel):
         if v and not validate_ssid(v):
             raise ValueError('SSID must be 32 characters or less')
         return v
+    
+    @field_validator('due_day')
+    @classmethod
+    def validate_due_day(cls, v):
+        if not isinstance(v, int) or v < 1 or v > 31:
+            raise ValueError('Due day must be between 1 and 31')
+        return v
 
 
 class ClientUpdate(BaseModel):
     room_number: str = None
     area: str = None
     ssid: str = None
-    due_date: date = None
+    due_day: int = None
     last_payment: date = None
     
     @field_validator('room_number')
@@ -93,6 +99,13 @@ class ClientUpdate(BaseModel):
         if v and not validate_ssid(v):
             raise ValueError('SSID must be 32 characters or less')
         return v
+    
+    @field_validator('due_day')
+    @classmethod
+    def validate_due_day(cls, v):
+        if v is not None and (not isinstance(v, int) or v < 1 or v > 31):
+            raise ValueError('Due day must be between 1 and 31')
+        return v
 
 
 class LoginRequest(BaseModel):
@@ -100,30 +113,31 @@ class LoginRequest(BaseModel):
     password: str
 
 
-def verify_admin(username: str, password: str) -> bool:
-    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
-
-
-def get_next_monthly_due_date(current_due: date) -> date:
-    """Calculate next month's due date from today, keeping the same day of month"""
-    today = date.today()
-    due_day = current_due.day
+def get_current_user(request: Request) -> dict:
+    """Dependency: Validate session and return user data. Raises 401 if invalid."""
+    session_cookie = request.cookies.get("session")
     
-    # Start with next month
-    if today.month == 12:
-        next_month = today.replace(year=today.year + 1, month=1)
-    else:
-        next_month = today.replace(month=today.month + 1)
+    if not session_cookie:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     
-    # Handle day overflow (e.g., Jan 31 -> Feb 31 doesn't exist)
-    max_day = calendar.monthrange(next_month.year, next_month.month)[1]
-    due_day = min(due_day, max_day)
-    
-    return next_month.replace(day=due_day)
+    try:
+        session_data = serializer.loads(session_cookie, max_age=SESSION_COOKIE_MAX_AGE)
+        return session_data
+    except SignatureExpired:
+        raise HTTPException(status_code=401, detail="Session expired")
+    except BadSignature:
+        raise HTTPException(status_code=401, detail="Invalid session")
 
 
 @router.post("/login")
 def login(request: LoginRequest, response: Response):
+    # Verify credentials are configured
+    if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=500,
+            detail="Admin credentials not configured"
+        )
+    
     # Rate limiting check
     validate_login_attempt(request.username)
     
@@ -192,6 +206,8 @@ def logout(response: Response):
 
 @router.get("/clients")
 def list_clients(search: str = Query(None), db: Session = Depends(get_db)):
+    from backend.services import get_client_status
+    
     query = db.query(Client)
     
     if search:
@@ -203,11 +219,27 @@ def list_clients(search: str = Query(None), db: Session = Depends(get_db)):
         )
     
     clients = query.all()
-    return clients
+    
+    # Add status field to each client
+    result = []
+    for client in clients:
+        client_dict = {
+            "id": client.id,
+            "room_number": client.room_number,
+            "area": client.area,
+            "ssid": client.ssid,
+            "mac": client.mac,
+            "due_day": client.due_day,
+            "last_payment": client.last_payment,
+            "status": get_client_status(client)
+        }
+        result.append(client_dict)
+    
+    return result
 
 
 @router.post("/clients")
-def create_client(client: ClientCreate, db: Session = Depends(get_db)):
+def create_client(client: ClientCreate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     existing = db.query(Client).filter(Client.mac == client.mac).first()
     if existing:
         raise HTTPException(status_code=400, detail="MAC address already exists")
@@ -217,7 +249,7 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
         area=client.area,
         ssid=client.ssid,
         mac=client.mac,
-        due_date=client.due_date
+        due_day=client.due_day
     )
     db.add(new_client)
     db.commit()
@@ -227,14 +259,27 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
 
 @router.get("/clients/{mac}")
 def get_client(mac: str, db: Session = Depends(get_db)):
+    from backend.services import get_client_status
+    
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    return client
+    
+    client_dict = {
+        "id": client.id,
+        "room_number": client.room_number,
+        "area": client.area,
+        "ssid": client.ssid,
+        "mac": client.mac,
+        "due_day": client.due_day,
+        "last_payment": client.last_payment,
+        "status": get_client_status(client)
+    }
+    return client_dict
 
 
 @router.put("/clients/{mac}")
-def update_client(mac: str, update_data: ClientUpdate, db: Session = Depends(get_db)):
+def update_client(mac: str, update_data: ClientUpdate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -245,13 +290,10 @@ def update_client(mac: str, update_data: ClientUpdate, db: Session = Depends(get
         client.area = update_data.area
     if update_data.ssid:
         client.ssid = update_data.ssid
-    if update_data.due_date:
-        client.due_date = update_data.due_date
+    if update_data.due_day:
+        client.due_day = update_data.due_day
     if update_data.last_payment is not None:
-        if client.last_payment != update_data.last_payment:
-            client.last_payment = update_data.last_payment
-            # Auto-advance due date to next month when payment is marked
-            client.due_date = get_next_monthly_due_date(client.due_date)
+        client.last_payment = update_data.last_payment
     
     db.commit()
     db.refresh(client)
@@ -259,7 +301,7 @@ def update_client(mac: str, update_data: ClientUpdate, db: Session = Depends(get
 
 
 @router.delete("/clients/{mac}")
-def delete_client(mac: str, db: Session = Depends(get_db)):
+def delete_client(mac: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -270,17 +312,17 @@ def delete_client(mac: str, db: Session = Depends(get_db)):
 
 
 @router.post("/send-alert")
-def send_alert(db: Session = Depends(get_db)):
+def send_alert(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     """Send payment alert via Telegram immediately (admin only)"""
-    from backend.services import get_overdue_clients, get_due_soon_clients, get_active_clients, format_alert_message
+    from backend.services import get_overdue_clients, get_active_clients, get_not_set_clients, format_alert_message
     from backend.notify import send_telegram_message
     
     try:
         overdue = get_overdue_clients(db)
-        due_soon = get_due_soon_clients(db)
         active = get_active_clients(db)
+        not_set = get_not_set_clients(db)
         
-        message = format_alert_message(overdue, due_soon, active)
+        message = format_alert_message(overdue, active, not_set)
         success = send_telegram_message(message)
         
         if success:

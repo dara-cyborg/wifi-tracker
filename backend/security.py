@@ -62,10 +62,3 @@ def record_login_attempt(username: str, success: bool = False) -> None:
         if username not in login_attempts:
             login_attempts[username] = []
         login_attempts[username].append(datetime.now())
-
-def sanitize_string(value: str, max_length: int = 255) -> str:
-    """Sanitize string input"""
-    if not value:
-        return ""
-    # Strip whitespace and limit length
-    return value.strip()[:max_length]
