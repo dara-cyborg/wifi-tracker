@@ -12,7 +12,6 @@
             <h1>Payment Tracker</h1>
             <p>Manage client payments and due dates</p>
             <div class="button-group">
-                <button onclick="openModal('addModal')" class="btn">Add Client</button>
                 <button onclick="sendTelegramAlert()" class="btn btn-warning" title="Send alert via Telegram immediately">Send Alert</button>
                 <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
             </div>
@@ -140,20 +139,20 @@
     <script>
         // Check authentication on page load
         window.addEventListener('load', () => {
-            fetch('/auth/check', { credentials: 'include' })
-                .then(r => { if (!r.ok) window.location.href = '/login.html'; else loadClients(); })
-                .catch(() => window.location.href = '/login.html');
+            fetch('/admin/auth/check', { credentials: 'include' })
+                .then(r => { if (!r.ok) window.location.href = '/admin/login'; else loadClients(); })
+                .catch(() => window.location.href = '/admin/login');
         });
 
         function handleLogout() {
-            fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => window.location.href = '/login.html');
+            fetch('/admin/logout', { method: 'POST', credentials: 'include' }).finally(() => window.location.href = '/admin/login');
         }
 
         async function sendTelegramAlert() {
             if (!confirm('Send payment alert via Telegram?')) return;
             
             try {
-                const response = await fetch('/send-alert', {
+                const response = await fetch('/admin/send-alert', {
                     method: 'POST',
                     credentials: 'include'
                 });
@@ -176,7 +175,7 @@
 
         async function loadClients(search = null) {
             try {
-                const url = new URL('/clients', window.location.origin);
+                const url = new URL('/admin/clients', window.location.origin);
                 if (search) url.searchParams.append('search', search);
                 
                 const response = await fetch(url, { credentials: 'include' });
@@ -271,7 +270,7 @@
         async function deleteClient(mac) {
             if (!confirm('Delete this client?')) return;
             try {
-                const response = await fetch(`/clients/${mac}`, { method: 'DELETE', credentials: 'include' });
+                const response = await fetch(`/admin/clients/${mac}`, { method: 'DELETE', credentials: 'include' });
                 if (response.ok) {
                     showMessage('Client deleted', 'success');
                     loadClients();
@@ -302,7 +301,7 @@
         }
 
         function openEditModal(mac) {
-            fetch(`/clients/${mac}`, { credentials: 'include' })
+            fetch(`/admin/clients/${mac}`, { credentials: 'include' })
                 .then(r => r.json())
                 .then(client => {
                     document.getElementById('editMac').value = client.mac;
@@ -327,7 +326,7 @@
                 due_day: parseInt(document.getElementById('addDueDay').value)
             };
             try {
-                const response = await fetch('/clients', {
+                const response = await fetch('/admin/clients', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -359,7 +358,7 @@
                 last_payment: paymentValue.length > 0 ? paymentValue : null
             };
             try {
-                const response = await fetch(`/clients/${mac}`, {
+                const response = await fetch(`/admin/clients/${mac}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -386,5 +385,10 @@
             if (e.target === editModal) closeModal('editModal');
         });
     </script>
+
+    <!-- Floating Action Button -->
+    <button onclick="openModal('addModal')" class="fab" title="Add Client">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
 </body>
 </html>

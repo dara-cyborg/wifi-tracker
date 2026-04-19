@@ -11,7 +11,7 @@
 
 **Implementation:**
 - `backend/security.py`: `validate_login_attempt()` and `record_login_attempt()`
-- `backend/routes.py`: Updated `/login` endpoint with rate limiting
+- `backend/routes.py`: Updated `/admin/login` endpoint with rate limiting
 
 ### 2. **Injection Attacks** ✅
 - **SQL Injection**: SQLAlchemy ORM prevents parameterized query attacks
@@ -116,7 +116,7 @@ Security configuration template with clear instructions
 ### 4. **backend/routes.py** (UPDATED)
 - Environment variable credentials
 - Pydantic field validators
-- Rate limiting on `/login`
+- Rate limiting on `/admin/login`
 - Timing-attack resistant auth
 
 ### 5. **DEPLOYMENT.md** (NEW)
@@ -175,7 +175,7 @@ tail -f /var/log/nginx/error.log
 ### Test Rate Limiting
 ```bash
 # Try login with wrong password 5 times
-curl -X POST http://localhost:8000/login \
+curl -X POST http://localhost:8000/admin/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"wrong"}'
 # 6th attempt should get 429 Too Many Requests
@@ -184,7 +184,7 @@ curl -X POST http://localhost:8000/login \
 ### Test Input Validation
 ```bash
 # Invalid MAC address
-curl -X POST http://localhost:8000/clients \
+curl -X POST http://localhost:8000/admin/clients \
   -H "Content-Type: application/json" \
   -d '{
     "room_number":"101",

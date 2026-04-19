@@ -96,23 +96,29 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 @app.get("/")
 def root():
-    logger.info("Root page accessed")
+    logger.info("Public status page accessed")
+    return FileResponse(os.path.join(templates_path, "status.html"))
+
+
+@app.get("/admin")
+def admin_panel():
+    logger.info("Admin panel accessed")
     return FileResponse(os.path.join(templates_path, "index.html"))
 
 
-@app.get("/login.html")
+@app.get("/admin/login")
 def login_page():
     logger.info("Login page accessed")
     return FileResponse(os.path.join(templates_path, "login.html"))
 
 
-@app.get("/add.html")
+@app.get("/admin/add")
 def add_client():
     logger.info("Add client page accessed")
     return FileResponse(os.path.join(templates_path, "add.html"))
 
 
-@app.get("/edit.html")
+@app.get("/admin/edit")
 def edit_client():
     logger.info("Edit client page accessed")
     return FileResponse(os.path.join(templates_path, "edit.html"))

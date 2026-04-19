@@ -87,19 +87,31 @@ Server starts at `http://localhost:8000`
 
 - **`http://localhost:8000`** - View all clients
 - **`http://localhost:8000/add.html`** - Add new client
-- **`http://localhost:8000/edit.html?id=ROOM_NUMBER`** - Edit client
+- **`http://localhost:8000/`** - Public client status page (no login required)
+- **`http://localhost:8000/admin`** - Admin panel (requires login)
+- **`http://localhost:8000/admin/login`** - Admin login page
+- **`http://localhost:8000/admin/add`** - Add client (admin only)
+- **`http://localhost:8000/admin/edit`** - Edit client (admin only)
 
 ### API Endpoints
 
-**Clients**
-- `GET /clients` - List all clients
-- `GET /clients/{mac}` - Get single client by MAC address
-- `POST /clients` - Create client (MAC is unique identifier)
-- `PUT /clients/{mac}` - Update client by MAC address
-- `DELETE /clients/{mac}` - Delete client by MAC address
+**Admin Clients (Authentication Required)**
+- `GET /admin/clients` - List all clients
+- `GET /admin/clients/{mac}` - Get single client by MAC address
+- `POST /admin/clients` - Create client (MAC is unique identifier)
+- `PUT /admin/clients/{mac}` - Update client by MAC address
+- `DELETE /admin/clients/{mac}` - Delete client by MAC address
+
+**Public Clients (No Authentication)**
+- `GET /public/clients` - List all clients (public access)
 
 **Authentication**
-- `POST /login` - Login (request: `{"username": "admin", "password": "admin123"}`)
+- `POST /admin/login` - Login (request: `{"username": "admin", "password": "admin123"}`)
+- `GET /admin/auth/check` - Check authentication status
+- `POST /admin/logout` - Logout
+
+**Admin Functions**
+- `POST /admin/send-alert` - Send payment alert via Telegram (admin only)
 
 ### Default Admin Credentials
 
@@ -107,10 +119,10 @@ Server starts at `http://localhost:8000`
 - Username: `admin`
 - Password: `admin123`
 
-To change, edit `backend/routes.py`:
-```python
-ADMIN_USERNAME = "your_username"
-ADMIN_PASSWORD = "your_password"
+To change, edit `.env` file and update `ADMIN_USERNAME` and `ADMIN_PASSWORD`:
+```
+ADMIN_USERNAME=your_username
+ADMIN_PASSWORD=your_password
 ```
 
 ## How Daily Alerts Work

@@ -130,7 +130,7 @@ def get_current_user(request: Request) -> dict:
 
 
 @limiter.limit("10/minute")
-@router.post("/login")
+@router.post("/admin/login")
 def login(request: Request, login_request: LoginRequest, response: Response):
     # Verify credentials are configured
     if not ADMIN_USERNAME or not ADMIN_PASSWORD:
@@ -178,7 +178,7 @@ def login(request: Request, login_request: LoginRequest, response: Response):
     )
 
 @limiter.limit("60/minute")
-@router.get("/auth/check")
+@router.get("/admin/auth/check")
 def check_auth(request: Request):
     """Validate session cookie and return authentication status"""
     session_cookie = request.cookies.get("session")
@@ -198,14 +198,14 @@ def check_auth(request: Request):
         raise HTTPException(status_code=401, detail="Invalid session")
 
 @limiter.limit("60/minute")
-@router.post("/logout")
+@router.post("/admin/logout")
 def logout(request: Request, response: Response):
     """Clear session cookie and logout"""
     response.delete_cookie("session")
     return {"status": "success", "message": "Logged out"}
 
 @limiter.limit("60/minute")
-@router.get("/clients")
+@router.get("/admin/clients")
 def list_clients(request: Request, search: str = Query(None), db: Session = Depends(get_db)):
     from backend.services import get_client_status
     
@@ -240,7 +240,7 @@ def list_clients(request: Request, search: str = Query(None), db: Session = Depe
 
 
 @limiter.limit("30/minute")
-@router.post("/clients")
+@router.post("/admin/clients")
 def create_client(request: Request, client: ClientCreate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     existing = db.query(Client).filter(Client.mac == client.mac).first()
     if existing:
@@ -260,7 +260,7 @@ def create_client(request: Request, client: ClientCreate, user: dict = Depends(g
 
 
 @limiter.limit("60/minute")
-@router.get("/clients/{mac}")
+@router.get("/admin/clients/{mac}")
 def get_client(request: Request, mac: str, db: Session = Depends(get_db)):
     from backend.services import get_client_status
     
@@ -281,7 +281,7 @@ def get_client(request: Request, mac: str, db: Session = Depends(get_db)):
     return client_dict
 
 @limiter.limit("30/minute")
-@router.put("/clients/{mac}")
+@router.put("/admin/clients/{mac}")
 def update_client(request: Request, mac: str, update_data: ClientUpdate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
@@ -303,7 +303,7 @@ def update_client(request: Request, mac: str, update_data: ClientUpdate, user: d
     return client
 
 @limiter.limit("30/minute")
-@router.delete("/clients/{mac}")
+@router.delete("/admin/clients/{mac}")
 def delete_client(request: Request, mac: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
@@ -314,7 +314,7 @@ def delete_client(request: Request, mac: str, user: dict = Depends(get_current_u
     return {"status": "deleted", "mac": mac}
 
 @limiter.limit("5/minute")
-@router.post("/send-alert")
+@router.post("/admin/send-alert")
 def send_alert(request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     """Send payment alert via Telegram immediately (admin only)"""
     from backend.services import get_overdue_clients, get_active_clients, get_not_set_clients, format_alert_message
