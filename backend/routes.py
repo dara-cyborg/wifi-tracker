@@ -30,11 +30,10 @@ SESSION_COOKIE_MAX_AGE = 8 * 60 * 60
 
 
 def ensure_aware_datetime(dt: datetime) -> datetime:
-    """Convert datetime to CAMBODIA_TZ timezone."""
+    """SQLite returns naive UTC; convert to Cambodia timezone."""
     if dt is None:
         return None
     if dt.tzinfo is None:
-        # SQLite returns naive UTC — convert to UTC first, then to Cambodia TZ
         return dt.replace(tzinfo=timezone.utc).astimezone(CAMBODIA_TZ)
     return dt.astimezone(CAMBODIA_TZ)
 
@@ -132,7 +131,7 @@ class PaymentVerifyRequest(BaseModel):
 
 
 def get_current_user(request: Request) -> dict:
-    """Dependency: Validate session and return user data. Raises 401 if invalid."""
+    """Validate session and return user data; raises 401 if invalid."""
     session_cookie = request.cookies.get("session")
     
     if not session_cookie:
@@ -435,11 +434,7 @@ def generate_payment_qr(room_number: str, request: Request, db: Session = Depend
                 detail="Failed to generate QR image"
             )
         
-        raw = payment.expires_at
-        logger.info(f"RAW from DB: {raw!r}")
-        aware = ensure_aware_datetime(raw)
-        logger.info(f"AFTER ensure_aware: {aware!r}")
-        logger.info(f"ISOFORMAT sent to frontend: {aware.isoformat()}")
+        aware = ensure_aware_datetime(payment.expires_at)
         
         return {
             "payment_id": payment.id,
@@ -541,6 +536,10 @@ def verify_payment(verify_request: PaymentVerifyRequest, request: Request, db: S
                 client.last_payment = date.today()
             
             db.commit()
+            
+            # Send payment notification to Telegram
+            from backend.notify import send_payment_notification
+            send_payment_notification(payment)
             
             return {
                 "payment_id": payment.id,
