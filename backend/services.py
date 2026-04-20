@@ -2,6 +2,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 from backend.models import Client
 import calendar
+import os
 
 
 def get_current_month_due_date(due_day: int) -> date:
@@ -13,31 +14,20 @@ def get_current_month_due_date(due_day: int) -> date:
 
 
 def get_client_status(client: Client) -> str:
-    """
-    Determine client payment status:
-    - "Not set" - no payment recorded
-    - "Active" - paid for current period
-    - "N days overdue" - past due day without payment
-    """
     if not client.last_payment:
         return "Not set"
     
     today = date.today()
     current_due_date = get_current_month_due_date(client.due_day)
     
-    # If today is before or on the due date
     if today <= current_due_date:
-        # Check if payment is from current period (on or after start of month)
         month_start = today.replace(day=1)
         if client.last_payment >= month_start:
             return "Active"
     else:
-        # Today is after the due date
-        # Check if payment was made before due date
         if client.last_payment >= current_due_date:
             return "Active"
     
-    # Past due without payment
     days_overdue = (today - current_due_date).days
     return f"{days_overdue} days overdue"
 
@@ -94,3 +84,39 @@ def format_alert_message(overdue, active, not_set):
             message += f"• បន្ទប់លេខ {client.room_number} - {client.area}\n"
     
     return message
+
+
+def count_unique_devices_in_room(room_number: str, db: Session) -> int:
+    """
+    Count the number of unique devices (by MAC address) in a room.
+    
+    Args:
+        room_number: The room number to count devices for
+        db: Database session
+        
+    Returns:
+        The count of unique MAC addresses in the room
+    """
+    count = db.query(Client).filter(Client.room_number == room_number).count()
+    return count
+
+
+def calculate_room_price(room_number: str, db: Session, price_per_device: float = None) -> float:
+    """
+    Calculate the total price for a room based on unique devices.
+    Each unique device (MAC address) costs price_per_device per month.
+    
+    Args:
+        room_number: The room number to calculate price for
+        db: Database session
+        price_per_device: Price per device per month (default: from PRICE_PER_DEVICE_PER_MONTH env var, fallback to $2.50)
+        
+    Returns:
+        Total price in USD for all devices in the room
+    """
+    if price_per_device is None:
+        price_per_device = float(os.getenv("PRICE_PER_DEVICE_PER_MONTH", "2.5"))
+    
+    device_count = count_unique_devices_in_room(room_number, db)
+    total_price = device_count * price_per_device
+    return round(total_price, 2)

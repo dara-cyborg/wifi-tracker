@@ -1,26 +1,42 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_validator
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 import os
+import logging
+import pytz
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from backend.database import get_db
-from backend.models import Client
+from backend.models import Client, Payment
 from backend.security import (
     validate_mac_address, validate_room_number, validate_area, validate_ssid,
     validate_login_attempt, record_login_attempt, limiter
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Load credentials and secrets from environment variables
+CAMBODIA_TZ = pytz.timezone('Asia/Phnom_Penh')
+
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-# Session serializer
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable not set")
+
 serializer = URLSafeTimedSerializer(SECRET_KEY)
-SESSION_COOKIE_MAX_AGE = 8 * 60 * 60  # 8 hours in seconds
+SESSION_COOKIE_MAX_AGE = 8 * 60 * 60
+
+
+def ensure_aware_datetime(dt: datetime) -> datetime:
+    """Convert datetime to CAMBODIA_TZ timezone."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        # SQLite returns naive UTC — convert to UTC first, then to Cambodia TZ
+        return dt.replace(tzinfo=timezone.utc).astimezone(CAMBODIA_TZ)
+    return dt.astimezone(CAMBODIA_TZ)
 
 
 class ClientCreate(BaseModel):
@@ -28,7 +44,7 @@ class ClientCreate(BaseModel):
     area: str
     ssid: str = None
     mac: str
-    due_day: int  # Day of month (1-31)
+    due_day: int
     
     @field_validator('room_number')
     @classmethod
@@ -54,7 +70,6 @@ class ClientCreate(BaseModel):
     @field_validator('ssid')
     @classmethod
     def validate_ssid_field(cls, v):
-        # Normalize: empty string stays empty, None stays None
         if isinstance(v, str) and len(v.strip()) == 0:
             return ""
         if v and not validate_ssid(v):
@@ -93,7 +108,6 @@ class ClientUpdate(BaseModel):
     @field_validator('ssid')
     @classmethod
     def validate_ssid_field(cls, v):
-        # Normalize: empty string stays empty, None stays None
         if isinstance(v, str) and len(v.strip()) == 0:
             return ""
         if v and not validate_ssid(v):
@@ -111,6 +125,10 @@ class ClientUpdate(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class PaymentVerifyRequest(BaseModel):
+    payment_id: int
 
 
 def get_current_user(request: Request) -> dict:
@@ -132,31 +150,26 @@ def get_current_user(request: Request) -> dict:
 @limiter.limit("10/minute")
 @router.post("/admin/login")
 def login(request: Request, login_request: LoginRequest, response: Response):
-    # Verify credentials are configured
     if not ADMIN_USERNAME or not ADMIN_PASSWORD:
         raise HTTPException(
             status_code=500,
             detail="Admin credentials not configured"
         )
     
-    # Rate limiting check
     validate_login_attempt(login_request.username)
     
-    # Security: Use constant-time comparison to prevent timing attacks
     username_match = login_request.username == ADMIN_USERNAME
     password_match = login_request.password == ADMIN_PASSWORD
     
     if username_match and password_match:
         record_login_attempt(login_request.username, success=True)
         
-        # Create signed session token with username and timestamp
         session_data = {
             "username": login_request.username,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(CAMBODIA_TZ).isoformat()
         }
         token = serializer.dumps(session_data)
         
-        # Set HttpOnly cookie (not accessible from JavaScript)
         response.set_cookie(
             key="session",
             value=token,
@@ -168,10 +181,7 @@ def login(request: Request, login_request: LoginRequest, response: Response):
         
         return {"status": "success", "message": "Login successful"}
     
-    # Record failed attempt
     record_login_attempt(login_request.username, success=False)
-    
-    # Generic error message (don't reveal if username exists)
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid username or password"
@@ -180,7 +190,6 @@ def login(request: Request, login_request: LoginRequest, response: Response):
 @limiter.limit("60/minute")
 @router.get("/admin/auth/check")
 def check_auth(request: Request):
-    """Validate session cookie and return authentication status"""
     session_cookie = request.cookies.get("session")
     
     if not session_cookie:
@@ -200,7 +209,6 @@ def check_auth(request: Request):
 @limiter.limit("60/minute")
 @router.post("/admin/logout")
 def logout(request: Request, response: Response):
-    """Clear session cookie and logout"""
     response.delete_cookie("session")
     return {"status": "success", "message": "Logged out"}
 
@@ -221,7 +229,6 @@ def list_clients(request: Request, search: str = Query(None), db: Session = Depe
     
     clients = query.all()
     
-    # Add status field to each client
     result = []
     for client in clients:
         client_dict = {
@@ -316,7 +323,6 @@ def delete_client(request: Request, mac: str, user: dict = Depends(get_current_u
 @limiter.limit("5/minute")
 @router.post("/admin/send-alert")
 def send_alert(request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Send payment alert via Telegram immediately (admin only)"""
     from backend.services import get_overdue_clients, get_active_clients, get_not_set_clients, format_alert_message
     from backend.notify import send_telegram_message
     
@@ -339,4 +345,240 @@ def send_alert(request: Request, user: dict = Depends(get_current_user), db: Ses
         raise HTTPException(
             status_code=500,
             detail=f"Error sending alert: {str(e)}"
+        )
+
+@limiter.limit("60/minute")
+@router.post("/customer/payment/generate-qr/{room_number}")
+def generate_payment_qr(room_number: str, request: Request, db: Session = Depends(get_db)):
+    try:
+        from backend.bakong import BakongService, BakongConfig
+        
+        client = db.query(Client).filter(Client.room_number == room_number).first()
+        if not client:
+            raise HTTPException(status_code=404, detail=f"Room {room_number} not found")
+        
+        all_pending = db.query(Payment).filter(
+            Payment.client_id == client.id,
+            Payment.payment_status == "PENDING"
+        ).all()
+        
+        now = datetime.now(CAMBODIA_TZ)
+        existing_payment = None
+        for payment in all_pending:
+            payment_expires_at = ensure_aware_datetime(payment.expires_at)
+            if payment_expires_at > now:
+                existing_payment = payment
+                break
+        
+        if existing_payment:
+            
+            config = BakongConfig()
+            service = BakongService(config)
+            qr_image_data = service.generate_qr_image(existing_payment.qr_string)
+            
+            if not qr_image_data:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to generate QR image"
+                )
+            
+            return {
+                "payment_id": existing_payment.id,
+                "room_number": existing_payment.room_number,
+                "amount": existing_payment.amount,
+                "currency": existing_payment.currency,
+                "qr_image": qr_image_data,
+                "expires_at": ensure_aware_datetime(existing_payment.expires_at).isoformat(),
+                "status": existing_payment.payment_status
+            }
+        
+        config = BakongConfig()
+        service = BakongService(config)
+        
+        from datetime import date as dt_date
+        bill_ref = f"Room{room_number}-{dt_date.today().isoformat()}"
+        
+        from backend.services import calculate_room_price
+        amount = calculate_room_price(room_number, db)
+        currency = "USD"
+        
+        qr_result = service.generate_qr(
+            amount=amount,
+            bill_number=bill_ref,
+            description=f"WiFi Payment for Room {room_number}"
+        )
+        
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+        
+        payment = Payment(
+            client_id=client.id,
+            room_number=room_number,
+            qr_string=qr_result["qr_string"],
+            qr_md5_hash=qr_result["qr_md5"],
+            amount=amount,
+            currency=currency,
+            bill_number=bill_ref,
+            transaction_reference=f"PAY-{room_number}-{datetime.now(CAMBODIA_TZ).timestamp()}",
+            payment_status="PENDING",
+            expires_at=expires_at
+        )
+        
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+        
+        qr_image_data = service.generate_qr_image(qr_result["qr_string"])
+        
+        if not qr_image_data:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate QR image"
+            )
+        
+        raw = payment.expires_at
+        logger.info(f"RAW from DB: {raw!r}")
+        aware = ensure_aware_datetime(raw)
+        logger.info(f"AFTER ensure_aware: {aware!r}")
+        logger.info(f"ISOFORMAT sent to frontend: {aware.isoformat()}")
+        
+        return {
+            "payment_id": payment.id,
+            "room_number": payment.room_number,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "qr_image": qr_image_data,
+            "expires_at": aware.isoformat(),
+            "status": payment.payment_status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate payment QR: {str(e)}"
+        )
+
+
+@limiter.limit("60/minute")
+@router.get("/customer/pricing/{room_number}")
+def get_room_pricing(room_number: str, request: Request, db: Session = Depends(get_db)):
+    try:
+        client = db.query(Client).filter(Client.room_number == room_number).first()
+        if not client:
+            raise HTTPException(status_code=404, detail=f"Room {room_number} not found")
+        
+        from backend.services import calculate_room_price, count_unique_devices_in_room
+        import os
+        
+        device_count = count_unique_devices_in_room(room_number, db)
+        total_price = calculate_room_price(room_number, db)
+        price_per_device = float(os.getenv("PRICE_PER_DEVICE_PER_MONTH", "2.5"))
+        
+        return {
+            "room_number": room_number,
+            "device_count": device_count,
+            "price_per_device": price_per_device,
+            "currency": "USD",
+            "total_price": total_price
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get pricing: {str(e)}"
+        )
+
+
+@limiter.limit("25/minute")
+@router.post("/customer/payment/verify")
+def verify_payment(verify_request: PaymentVerifyRequest, request: Request, db: Session = Depends(get_db)):
+    try:
+        from backend.bakong import BakongService, BakongConfig
+        
+        payment = db.query(Payment).filter(Payment.id == verify_request.payment_id).first()
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        if payment.payment_status == "VERIFIED":
+            return {
+                "payment_id": payment.id,
+                "verified": True,
+                "status": "VERIFIED",
+                "message": "Payment already verified",
+                "timestamp": datetime.now(CAMBODIA_TZ).isoformat()
+            }
+        
+        payment_expires_at = ensure_aware_datetime(payment.expires_at)
+        if payment_expires_at < datetime.now(CAMBODIA_TZ):
+            if payment.payment_status != "EXPIRED":
+                payment.payment_status = "EXPIRED"
+                db.commit()
+            
+            return {
+                "payment_id": payment.id,
+                "verified": False,
+                "status": "EXPIRED",
+                "message": "Payment QR has expired. Generate a new one.",
+                "timestamp": datetime.now(CAMBODIA_TZ).isoformat()
+            }
+        
+        config = BakongConfig()
+        service = BakongService(config)
+        result = service.verify_payment(payment.qr_md5_hash)
+        
+        if result["status"] == "PAID":
+            payment.payment_status = "VERIFIED"
+            payment.verified_at = datetime.now(CAMBODIA_TZ)
+            
+            if result["payment_data"]:
+                payment.bakong_transaction_hash = result["payment_data"].get("hash")
+            
+            all_clients_in_room = db.query(Client).filter(Client.room_number == payment.room_number).all()
+            for client in all_clients_in_room:
+                client.last_payment = date.today()
+            
+            db.commit()
+            
+            return {
+                "payment_id": payment.id,
+                "verified": True,
+                "status": "VERIFIED",
+                "message": "Payment verified successfully!",
+                "timestamp": datetime.now(CAMBODIA_TZ).isoformat()
+            }
+        
+        elif result["status"] == "UNPAID":
+            return {
+                "payment_id": payment.id,
+                "verified": False,
+                "status": "UNPAID",
+                "message": "Payment not yet received. Please wait or try again.",
+                "timestamp": datetime.now(CAMBODIA_TZ).isoformat()\
+            }
+        
+        elif result["status"] == "NOT_FOUND":
+            return {
+                "payment_id": payment.id,
+                "verified": False,
+                "status": "PENDING",
+                "message": "QR not yet recognized by Bakong. Please wait or generate a new QR.",
+                "timestamp": datetime.now(CAMBODIA_TZ).isoformat()
+            }
+        
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail=result.get("error", "Could not verify payment at this time. Please try again."),
+                headers={"Retry-After": "5"}
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not verify payment at this time. Please try again later."
         )
