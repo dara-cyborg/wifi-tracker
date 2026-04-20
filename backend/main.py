@@ -13,14 +13,37 @@ from backend.routes import router
 from backend.scheduler import start_scheduler, stop_scheduler
 from backend.security import limiter
 
-# Configure logging
+logger = logging.getLogger(__name__)
+
+REQUIRED_ENV_VARS = [
+    "ADMIN_USERNAME",
+    "ADMIN_PASSWORD",
+    "SECRET_KEY",
+    "BAKONG_DEVELOPER_TOKEN",
+    "BAKONG_MERCHANT_ACCOUNT_ID",
+    "BAKONG_MERCHANT_NAME",
+    "BAKONG_MERCHANT_CITY",
+]
+
+def validate_required_env_vars():
+    missing = []
+    for var in REQUIRED_ENV_VARS:
+        if not os.getenv(var):
+            missing.append(var)
+    
+    if missing:
+        raise RuntimeError(
+            f"Missing required environment variables: {', '.join(missing)}. "
+            f"Please check your .env file."
+        )
+    
+    logger.info("All required environment variables validated")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
 
-# Security headers middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
@@ -36,11 +59,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://static.cloudflareinsights.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src https://fonts.gstatic.com; "
             "img-src 'self' data:; "
-            "connect-src 'self'; "
+            "connect-src 'self' https://cloudflareinsights.com; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"
@@ -50,6 +73,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_required_env_vars()
     logger.info("Starting WiFi Tracker application")
     start_scheduler()
     yield
@@ -58,10 +82,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="WiFi Payment Tracker", lifespan=lifespan)
 
-# Attach limiter to app
 app.state.limiter = limiter
 
-# Rate limit exception handler
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request, exc):
     return JSONResponse(
@@ -71,7 +93,6 @@ async def rate_limit_handler(request, exc):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS configuration
 allowed_origins = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -81,13 +102,10 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-# Initialize database
 init_db()
 
-# Include routes
 app.include_router(router)
 
-# Paths
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/static")
 templates_path = os.path.join(os.path.dirname(__file__), "../frontend/templates")
 
@@ -96,23 +114,29 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 @app.get("/")
 def root():
-    logger.info("Root page accessed")
+    logger.info("Public status page accessed")
+    return FileResponse(os.path.join(templates_path, "status.html"))
+
+
+@app.get("/admin")
+def admin_panel():
+    logger.info("Admin panel accessed")
     return FileResponse(os.path.join(templates_path, "index.html"))
 
 
-@app.get("/login.html")
+@app.get("/admin/login")
 def login_page():
     logger.info("Login page accessed")
     return FileResponse(os.path.join(templates_path, "login.html"))
 
 
-@app.get("/add.html")
+@app.get("/admin/add")
 def add_client():
     logger.info("Add client page accessed")
     return FileResponse(os.path.join(templates_path, "add.html"))
 
 
-@app.get("/edit.html")
+@app.get("/admin/edit")
 def edit_client():
     logger.info("Edit client page accessed")
     return FileResponse(os.path.join(templates_path, "edit.html"))
@@ -120,4 +144,6 @@ def edit_client():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Room Status</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .status-header {
+            background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+            padding: 32px;
+            border-radius: 12px;
+            margin-top: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .status-header h1 {
+            color: #000;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .status-header p {
+            color: #666;
+            font-size: 16px;
+            font-weight: 300;
+        }
+
+        .search-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            max-width: 600px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .search-section label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .search-section input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Kantumruy Pro', sans-serif;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+        }
+
+        .search-section input:focus {
+            outline: none;
+            border-color: #000;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+
+        .search-section input::placeholder {
+            color: #999;
+            font-weight: 300;
+        }
+
+        .search-section button {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Kantumruy Pro', sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .search-section button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .search-section button:active {
+            transform: translateY(0);
+        }
+
+        .results-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .result-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .result-card.show {
+            display: block;
+        }
+
+        .result-card h2 {
+            color: #000;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 12px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-item-value {
+            color: #666;
+            text-align: right;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-badge.not-set {
+            background: #fed7aa;
+            color: #7c2d12;
+        }
+
+        .payment-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .payment-button {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Kantumruy Pro', sans-serif;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+        }
+
+        .payment-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 24px;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #message {
+            margin-bottom: 24px;
+        }
+
+        .devices-list {
+            margin-top: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .devices-list h3 {
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .device-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #000;
+            font-size: 13px;
+        }
+
+        .device-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .device-label {
+            color: #999;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .device-mac {
+            color: #333;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            margin-top: 4px;
+        }
+
+        .device-count-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .qr-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .qr-modal.show {
+            display: flex;
+        }
+
+        .qr-modal-content {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .qr-modal-content h2 {
+            color: #000;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .qr-modal-content p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        #qrExpirationTimer {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 16px;
+            font-family: 'Courier New', monospace;
+        }
+
+        #qrExpirationTimer.warning {
+            color: #ea580c;
+        }
+
+        #qrExpirationTimer.safe {
+            color: #059669;
+        }
+
+        #qrcodeImage {
+            margin-bottom: 24px;
+            border-radius: 8px;
+            object-fit: contain;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .qr-payment-status {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .qr-payment-status.success {
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .qr-payment-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            font-weight: 600;
+        }
+
+        .qr-modal-close {
+            width: 100%;
+            padding: 12px 24px;
+            background: #e5e7eb;
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .qr-modal-close:hover {
+            background: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-header">
+            <h1>ឆែក និងបង់ប្រាក់ Wi-Fi</h1>
+            <p>បងៗអាចឆែក និងបង់ប្រាក់ Wi-Fi បានដោយបញ្ចូលលេខបន្ទប់ក្នុងប្រអប់ខាងក្រោម</p>
+        </div>
+
+        <div class="search-section">
+            <label for="roomInput">លេខបន្ទប់</label>
+            <input 
+                type="text" 
+                id="roomInput" 
+                placeholder="173"
+                onkeypress="handleKeyPress(event)"
+            >
+            <button onclick="searchRoom()">ស្វែងរក</button>
+        </div>
+
+        <div id="message" class="error-message"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Searching...</p>
+        </div>
+
+        <div class="results-container">
+            <div id="resultCard" class="result-card">
+                <h2>ព័ត៌មានរបស់បង</h2>
+                <div class="result-item">
+                    <span class="result-item-label">លេខបន្ទប់</span>
+                    <span class="result-item-value" id="resultRoom">—</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-item-label">តំបន់កំពុងនៅ</span>
+                    <span class="result-item-value" id="resultArea">—</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-item-label">Wi-Fi កំពុងប្រើ</span>
+                    <span class="result-item-value" id="resultSsid">—</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-item-label">ត្រូវទូទាត់ថ្ងៃទី</span>
+                    <span class="result-item-value" id="resultDueDay">—</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-item-label">ការទូទាត់ចុងក្រោយ</span>
+                    <span class="result-item-value" id="resultLastPayment">—</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-item-label">ស្ថានភាព</span>
+                    <span class="result-item-value" id="resultStatus">—</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-item-label">ចំនួនទូរស័ព្ទ</span>
+                    <span class="result-item-value" id="resultDeviceCount">—</span>
+                </div>
+
+                <div class="devices-list">
+                    <h3>ទូរស័ព្ទកំពុងប្រើ <span class="device-count-badge" id="deviceCountBadge">0</span></h3>
+                    <div id="devicesList"></div>
+                </div>
+
+                <div class="payment-section">
+                    <button class="payment-button" onclick="initiatePayment()">
+                        ទូទាត់តាម KHQR
+                    </button>
+                    <p style="text-align: center; font-size: 12px; color: #999; margin-top: 12px;">
+                        Secure payment powered by Bakong
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Payment Modal -->
+    <div id="qrModal" class="qr-modal">
+        <div class="qr-modal-content">
+            <h2>ទូទាត់តាម KHQR</h2>
+            <p>ពិនិត្យមើលលេខកូដ QR ដែលមាននៅក្រោម ឬប្រើ Bakong App ដើម្បីស្កេន</p>
+            <img id="qrcodeImage" alt="QR Code" style="max-width: 300px; height: auto; margin: 0 auto; display: block;">
+            <div id="qrExpirationTimer" class="safe">00:00</div>
+            <div id="paymentStatus" class="qr-payment-status">
+                រងចាំការទូទាត់...
+            </div>
+            <button class="qr-modal-close" onclick="closeQRModal()">បិទ</button>
+        </div>
+    </div>
+
+    <script>
+        // Payment state - scoped to page load (not localStorage/sessionStorage)
+        let currentPaymentId = null;
+        let paymentPollingInterval = null;
+        let paymentStartTime = null;
+        let qrExpirationTime = null;
+        let qrTimerInterval = null;
+        const POLLING_TIMEOUT_MS = 290 * 1000; // 4 minutes 50 seconds (290 seconds)
+
+        function updateQRTimer() {
+            if (!qrExpirationTime) return;
+            
+            const now = new Date().getTime();
+            const timeRemaining = qrExpirationTime - now;
+            
+            if (timeRemaining <= 0) {
+                // Timer expired - handle UI changes
+                clearInterval(qrTimerInterval);
+                clearInterval(paymentPollingInterval);
+                paymentPollingInterval = null;
+                qrTimerInterval = null;
+                
+                // Hide the timer
+                document.getElementById('qrExpirationTimer').style.display = 'none';
+                
+                // Grey out QR code
+                const qrImage = document.getElementById('qrcodeImage');
+                qrImage.style.opacity = '0.3';
+                qrImage.style.pointerEvents = 'none';
+                
+                // Show expiration message with refresh button
+                const statusDiv = document.getElementById('paymentStatus');
+                statusDiv.innerHTML = `
+                    <div style="margin-bottom: 16px;">QR code expired. Please generate a new one.</div>
+                    <button onclick="retryPayment()" style="
+                        width: 100%;
+                        padding: 10px 16px;
+                        background: #059669;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
+                        Generate New QR
+                    </button>
+                `;
+                statusDiv.className = 'qr-payment-status error';
+                return;
+            }
+            
+            // Calculate minutes and seconds
+            const totalSeconds = Math.floor(timeRemaining / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            
+            // Format display (MM:SS)
+            const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('qrExpirationTimer').textContent = display;
+            
+            // Change color based on remaining time
+            if (timeRemaining > 5 * 60 * 1000) {
+                // More than 5 minutes - green
+                document.getElementById('qrExpirationTimer').className = 'safe';
+            } else if (timeRemaining > 60 * 1000) {
+                // 1-5 minutes - orange
+                document.getElementById('qrExpirationTimer').className = 'warning';
+            } else {
+                // Less than 1 minute - red (critical)
+                document.getElementById('qrExpirationTimer').className = '';
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchRoom();
+            }
+        }
+
+        async function searchRoom() {
+            const roomNumber = document.getElementById('roomInput').value.trim();
+            const resultCard = document.getElementById('resultCard');
+            const errorMsg = document.getElementById('message');
+            const loadingDiv = document.getElementById('loading');
+
+            // Reset display
+            resultCard.classList.remove('show');
+            errorMsg.classList.remove('show');
+
+            // Validate input
+            if (!roomNumber) {
+                errorMsg.textContent = 'Please enter a room number';
+                errorMsg.classList.add('show');
+                return;
+            }
+
+            // Show loading
+            loadingDiv.classList.add('show');
+
+            try {
+                // Search for room in the database
+                const response = await fetch(`/admin/clients?search=${encodeURIComponent(roomNumber)}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to search room');
+                }
+
+                const clients = await response.json();
+
+                // Find all clients with matching room number
+                const roomClients = clients.filter(c => 
+                    c.room_number.toLowerCase() === roomNumber.toLowerCase()
+                );
+
+                if (roomClients.length === 0) {
+                    errorMsg.textContent = 'Room not found. Please check the room number and try again.';
+                    errorMsg.classList.add('show');
+                    loadingDiv.classList.remove('show');
+                    return;
+                }
+
+                // Use the first client for room details
+                const primaryClient = roomClients[0];
+
+                // Display room details
+                document.getElementById('resultRoom').textContent = primaryClient.room_number;
+                document.getElementById('resultArea').textContent = primaryClient.area || '—';
+                document.getElementById('resultSsid').textContent = primaryClient.ssid || 'Not configured';
+                document.getElementById('resultDueDay').textContent = `${primaryClient.due_day}`;
+                
+                // Format last payment date
+                if (primaryClient.last_payment) {
+                    const date = new Date(primaryClient.last_payment);
+                    document.getElementById('resultLastPayment').textContent = date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } else {
+                    document.getElementById('resultLastPayment').textContent = 'Not yet paid';
+                }
+
+                // Display status badge
+                const statusElement = document.getElementById('resultStatus');
+                statusElement.innerHTML = `<span class="status-badge ${primaryClient.status.toLowerCase()}">${primaryClient.status}</span>`;
+
+                // Display device count
+                document.getElementById('resultDeviceCount').textContent = roomClients.length;
+                document.getElementById('deviceCountBadge').textContent = roomClients.length;
+
+                // Display all devices in the room
+                const devicesList = document.getElementById('devicesList');
+                devicesList.innerHTML = '';
+                
+                roomClients.forEach((client, index) => {
+                    const deviceItem = document.createElement('div');
+                    deviceItem.className = 'device-item';
+                    deviceItem.innerHTML = `
+                        <div class="device-label">Device ${index + 1}</div>
+                        <div class="device-mac">${client.mac}</div>
+                    `;
+                    devicesList.appendChild(deviceItem);
+                });
+
+                // Show result card
+                resultCard.classList.add('show');
+                loadingDiv.classList.remove('show');
+
+                // Scroll to results
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorMsg.textContent = 'An error occurred while searching. Please try again.';
+                errorMsg.classList.add('show');
+                loadingDiv.classList.remove('show');
+            }
+        }
+
+        function closeQRModal() {
+            document.getElementById('qrModal').classList.remove('show');
+            
+            // Stop polling if active
+            if (paymentPollingInterval) {
+                clearInterval(paymentPollingInterval);
+                paymentPollingInterval = null;
+            }
+            
+            // Stop timer if active
+            if (qrTimerInterval) {
+                clearInterval(qrTimerInterval);
+                qrTimerInterval = null;
+            }
+            
+            currentPaymentId = null;
+            paymentStartTime = null;
+            qrExpirationTime = null;
+        }
+
+        function retryPayment() {
+            // Clear expired UI state
+            const qrImage = document.getElementById('qrcodeImage');
+            qrImage.style.opacity = '1';
+            qrImage.style.pointerEvents = 'auto';
+            
+            const statusDiv = document.getElementById('paymentStatus');
+            statusDiv.textContent = 'Waiting for payment...';
+            statusDiv.className = 'qr-payment-status';
+            
+            document.getElementById('qrExpirationTimer').style.display = 'block';
+            
+            // Clear all intervals to prevent multiple timers
+            if (paymentPollingInterval) {
+                clearInterval(paymentPollingInterval);
+                paymentPollingInterval = null;
+            }
+            if (qrTimerInterval) {
+                clearInterval(qrTimerInterval);
+                qrTimerInterval = null;
+            }
+            
+            // Generate new QR code
+            initiatePayment();
+        }
+
+        async function initiatePayment() {
+            const roomNumber = document.getElementById('resultRoom').textContent;
+            
+            if (!roomNumber || roomNumber === '—') {
+                alert('Please search for a room first');
+                return;
+            }
+
+            try {
+                // Generate QR code via Phase 3 endpoint
+                const generateResponse = await fetch(`/customer/payment/generate-qr/${encodeURIComponent(roomNumber)}`, {
+                    method: 'POST'
+                });
+
+                if (!generateResponse.ok) {
+                    const error = await generateResponse.json();
+                    throw new Error(error.detail || 'Failed to generate QR code');
+                }
+
+                const paymentData = await generateResponse.json();
+                
+                // Validate response
+                if (!paymentData.qr_image) {
+                    console.error("QR image missing from response:", paymentData);
+                    throw new Error("QR image not generated by server");
+                }
+                
+                // Store payment_id in page-scoped const
+                currentPaymentId = paymentData.payment_id;
+                
+                // Set QR expiration time and start timer
+                if (paymentData.expires_at) {
+                    qrExpirationTime = new Date(paymentData.expires_at).getTime();
+                    console.log("expires_at string from backend:", paymentData.expires_at);
+                    console.log("qrExpirationTime (UTC ms):", qrExpirationTime);
+                    console.log("Date.now() (UTC ms):", Date.now());
+                    console.log("diff in minutes:", (qrExpirationTime - Date.now()) / 1000 / 60);
+                    // Clear any existing timer
+                    if (qrTimerInterval) {
+                        clearInterval(qrTimerInterval);
+                    }
+                    // Update timer immediately
+                    updateQRTimer();
+                    // Update every second
+                    qrTimerInterval = setInterval(updateQRTimer, 1000);
+                }
+                
+                // Show QR modal
+                document.getElementById('qrModal').classList.add('show');
+                
+                // Display QR code image directly from base64 data URI
+                const qrImage = document.getElementById('qrcodeImage');
+                qrImage.src = paymentData.qr_image;
+                qrImage.alt = 'Payment QR Code';
+
+                // Start polling for payment verification (every 5 seconds)
+                const statusDiv = document.getElementById('paymentStatus');
+                statusDiv.textContent = 'Waiting for payment...';
+                statusDiv.className = 'qr-payment-status';
+                
+                // Track polling start time
+                paymentStartTime = Date.now();
+                
+                // Stop any previous polling
+                if (paymentPollingInterval) {
+                    clearInterval(paymentPollingInterval);
+                }
+
+                paymentPollingInterval = setInterval(async () => {
+                    // Check if 4 minutes 50 seconds have passed (hard timeout before backend expires QR)
+                    const elapsedMs = Date.now() - paymentStartTime;
+                    if (elapsedMs > POLLING_TIMEOUT_MS) {
+                        clearInterval(paymentPollingInterval);
+                        paymentPollingInterval = null;
+                        
+                        // Show timeout message with retry button
+                        statusDiv.innerHTML = `
+                            <div>Payment polling timed out after 4 minutes 50 seconds.</div>
+                            <div style="margin-top: 12px;">The QR code has expired. Generate a new one to continue.</div>
+                            <button onclick="retryPayment()" style="
+                                width: 100%;
+                                margin-top: 12px;
+                                padding: 10px 16px;
+                                background: #059669;
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                            " onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
+                                Generate New QR
+                            </button>
+                        `;
+                        statusDiv.className = 'qr-payment-status error';
+                        return;
+                    }
+
+                    try {
+                        const verifyResponse = await fetch('/customer/payment/verify', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                payment_id: currentPaymentId
+                            })
+                        });
+
+                        if (!verifyResponse.ok) {
+                            if (verifyResponse.status === 404) {
+                                statusDiv.textContent = 'Payment not found';
+                                statusDiv.className = 'qr-payment-status error';
+                                clearInterval(paymentPollingInterval);
+                                return;
+                            } else if (verifyResponse.status === 503) {
+                                // Transient error, keep polling
+                                statusDiv.textContent = 'Connection issue, retrying...';
+                                statusDiv.className = 'qr-payment-status';
+                                return;
+                            }
+                            throw new Error('Verification failed');
+                        }
+
+                        const verifyData = await verifyResponse.json();
+
+                        if (verifyData.verified === true) {
+                            // Payment successful!
+                            statusDiv.textContent = '✓ Payment verified successfully!';
+                            statusDiv.className = 'qr-payment-status success';
+                            clearInterval(paymentPollingInterval);
+                            paymentPollingInterval = null;
+                            
+                            // Refresh room status after 2 seconds
+                            setTimeout(() => {
+                                closeQRModal();
+                                searchRoom();
+                            }, 2000);
+                        } else if (verifyData.status === 'EXPIRED') {
+                            statusDiv.textContent = 'QR code expired. Please try again.';
+                            statusDiv.className = 'qr-payment-status error';
+                            clearInterval(paymentPollingInterval);
+                            paymentPollingInterval = null;
+                        } else if (verifyData.status === 'UNPAID' || verifyData.status === 'PENDING') {
+                            statusDiv.textContent = 'Waiting for payment... (scanned: ' + verifyData.message + ')';
+                            statusDiv.className = 'qr-payment-status';
+                        }
+                    } catch (pollError) {
+                        console.error('Polling error:', pollError);
+                        statusDiv.textContent = 'Error checking payment status';
+                        statusDiv.className = 'qr-payment-status error';
+                    }
+                }, 5000);
+
+            } catch (error) {
+                console.error('Payment error:', error);
+                alert('Failed to initiate payment: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

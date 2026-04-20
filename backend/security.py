@@ -7,10 +7,8 @@ from fastapi import HTTPException, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-# Rate limiting
 limiter = Limiter(key_func=get_remote_address)
 
-# Login attempt tracking
 login_attempts: Dict[str, list] = {}
 MAX_ATTEMPTS = int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
 LOCKOUT_MINUTES = int(os.getenv("LOGIN_LOCKOUT_MINUTES", "15"))
@@ -43,13 +41,11 @@ def validate_login_attempt(username: str) -> None:
     if username not in login_attempts:
         login_attempts[username] = []
     
-    # Clean old attempts (older than lockout window)
     login_attempts[username] = [
         attempt_time for attempt_time in login_attempts[username]
         if now - attempt_time < timedelta(minutes=LOCKOUT_MINUTES)
     ]
     
-    # Check if locked out
     if len(login_attempts[username]) >= MAX_ATTEMPTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -57,13 +53,10 @@ def validate_login_attempt(username: str) -> None:
         )
 
 def record_login_attempt(username: str, success: bool = False) -> None:
-    """Record a login attempt"""
     if success:
-        # Clear attempts on successful login
         if username in login_attempts:
             login_attempts[username] = []
     else:
-        # Add failed attempt
         if username not in login_attempts:
             login_attempts[username] = []
         login_attempts[username].append(datetime.now())
