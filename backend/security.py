@@ -1,4 +1,3 @@
-"""Security utilities for WiFi Tracker"""
 import re
 import os
 from datetime import datetime, timedelta
@@ -14,24 +13,20 @@ MAX_ATTEMPTS = int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
 LOCKOUT_MINUTES = int(os.getenv("LOGIN_LOCKOUT_MINUTES", "15"))
 
 def validate_mac_address(mac: str) -> bool:
-    """Validate MAC address format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX"""
     pattern = r'^([0-9A-Fa-f]{2}[:\-]){5}([0-9A-Fa-f]{2})$'
     return bool(re.match(pattern, mac.strip()))
 
 def validate_room_number(room: str) -> bool:
-    """Validate room number: alphanumeric, 1-20 chars, no special chars"""
     pattern = r'^[a-zA-Z0-9\-]{1,20}$'
     return bool(re.match(pattern, room.strip()))
 
 def validate_area(area: str) -> bool:
-    """Validate area: alphanumeric and spaces, 1-100 chars"""
     pattern = r'^[a-zA-Z0-9\s\-]{1,100}$'
     return bool(re.match(pattern, area.strip()))
 
 def validate_ssid(ssid: str) -> bool:
-    """Validate SSID: any chars, max 32 chars (WiFi standard)"""
     if not ssid or len(ssid) == 0:
-        return True  # SSID is optional
+        return True
     return len(ssid.strip()) <= 32
 
 def validate_login_attempt(username: str) -> None:
