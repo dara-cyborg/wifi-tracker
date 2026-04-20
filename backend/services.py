@@ -29,6 +29,8 @@ def get_client_status(client: Client) -> str:
             return "Active"
     
     days_overdue = (today - current_due_date).days
+    if days_overdue < 0:
+        return "Active"
     return f"{days_overdue} days overdue"
 
 
