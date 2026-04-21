@@ -397,6 +397,47 @@
         .qr-modal-close:hover {
             background: #d1d5db;
         }
+
+        .help-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .help-label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .telegram-button {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0088cc 0%, #0073aa 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Kantumruy Pro', sans-serif;
+            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.2);
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .telegram-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 136, 204, 0.3);
+        }
+
+        .telegram-button:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -469,6 +510,13 @@
                     </p>
                 </div>
             </div>
+        </div>
+
+        <div class="help-section" style="max-width: 600px; margin: 0 auto;">
+            <label class="help-label">Wi-Fi មានបញ្ហា?</label>
+            <a href="https://t.me/DARAMONGKOL" target="_blank" class="telegram-button">
+                ឆាត Telegram
+            </a>
         </div>
     </div>
 
@@ -746,10 +794,6 @@
                 // Set QR expiration time and start timer
                 if (paymentData.expires_at) {
                     qrExpirationTime = new Date(paymentData.expires_at).getTime();
-                    console.log("expires_at string from backend:", paymentData.expires_at);
-                    console.log("qrExpirationTime (UTC ms):", qrExpirationTime);
-                    console.log("Date.now() (UTC ms):", Date.now());
-                    console.log("diff in minutes:", (qrExpirationTime - Date.now()) / 1000 / 60);
                     // Clear any existing timer
                     if (qrTimerInterval) {
                         clearInterval(qrTimerInterval);
