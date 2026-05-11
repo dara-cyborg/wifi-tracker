@@ -1,30 +1,7 @@
 from datetime import date
 from sqlalchemy.orm import Session
 from backend.models import Client
-import calendar
 import os
-
-
-def get_month_due_date(year: int, month: int, due_day: int) -> date:
-    max_day = calendar.monthrange(year, month)[1]
-    clamped_day = min(due_day, max_day)
-    return date(year, month, clamped_day)
-
-
-def get_current_month_due_date(due_day: int) -> date:
-    today = date.today()
-    return get_month_due_date(today.year, today.month, due_day)
-
-
-def get_previous_month_due_date(due_day: int) -> date:
-    today = date.today()
-    if today.month == 1:
-        year = today.year - 1
-        month = 12
-    else:
-        year = today.year
-        month = today.month - 1
-    return get_month_due_date(year, month, due_day)
 
 
 def get_client_status(client: Client) -> str:
@@ -32,15 +9,10 @@ def get_client_status(client: Client) -> str:
         return "Not set"
     
     today = date.today()
-    previous_due_date = get_previous_month_due_date(client.due_day)
-
-    if client.last_payment >= previous_due_date:
+    if client.last_payment.year == today.year and client.last_payment.month == today.month:
         return "Active"
 
-    days_overdue = (today - previous_due_date).days
-    if days_overdue < 0:
-        return "Active"
-    return f"{days_overdue} days overdue"
+    return "overdue"
 
 
 def get_overdue_clients(db: Session):
