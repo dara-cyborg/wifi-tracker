@@ -314,10 +314,15 @@ def delete_client(request: Request, mac: str, user: dict = Depends(get_current_u
     client = db.query(Client).filter(Client.mac == mac).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
-    db.delete(client)
-    db.commit()
-    return {"status": "deleted", "mac": mac}
+
+    try:
+        db.query(Payment).filter(Payment.client_id == client.id).delete(synchronize_session=False)
+        db.delete(client)
+        db.commit()
+        return {"status": "deleted", "mac": mac}
+    except Exception:
+        db.rollback()
+        raise
 
 @limiter.limit("5/minute")
 @router.post("/admin/send-alert")
