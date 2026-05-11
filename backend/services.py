@@ -5,11 +5,26 @@ import calendar
 import os
 
 
+def get_month_due_date(year: int, month: int, due_day: int) -> date:
+    max_day = calendar.monthrange(year, month)[1]
+    clamped_day = min(due_day, max_day)
+    return date(year, month, clamped_day)
+
+
 def get_current_month_due_date(due_day: int) -> date:
     today = date.today()
-    max_day = calendar.monthrange(today.year, today.month)[1]
-    clamped_day = min(due_day, max_day)
-    return today.replace(day=clamped_day)
+    return get_month_due_date(today.year, today.month, due_day)
+
+
+def get_previous_month_due_date(due_day: int) -> date:
+    today = date.today()
+    if today.month == 1:
+        year = today.year - 1
+        month = 12
+    else:
+        year = today.year
+        month = today.month - 1
+    return get_month_due_date(year, month, due_day)
 
 
 def get_client_status(client: Client) -> str:
@@ -17,17 +32,12 @@ def get_client_status(client: Client) -> str:
         return "Not set"
     
     today = date.today()
-    current_due_date = get_current_month_due_date(client.due_day)
-    
-    if today <= current_due_date:
-        month_start = today.replace(day=1)
-        if client.last_payment >= month_start:
-            return "Active"
-    else:
-        if client.last_payment >= current_due_date:
-            return "Active"
-    
-    days_overdue = (today - current_due_date).days
+    previous_due_date = get_previous_month_due_date(client.due_day)
+
+    if client.last_payment >= previous_due_date:
+        return "Active"
+
+    days_overdue = (today - previous_due_date).days
     if days_overdue < 0:
         return "Active"
     return f"{days_overdue} days overdue"
