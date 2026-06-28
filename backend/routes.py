@@ -457,7 +457,7 @@ def generate_payment_qr(room_number: str, request: Request, db: Session = Depend
 
 @limiter.limit("60/minute")
 @router.get("/customer/pricing/{room_number}")
-def get_room_pricing(room_number: str, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_room_pricing(room_number: str, request: Request, db: Session = Depends(get_db)):
     try:
         client = db.query(Client).filter(Client.room_number == room_number).first()
         if not client:
@@ -489,7 +489,7 @@ def get_room_pricing(room_number: str, request: Request, user: dict = Depends(ge
 
 @limiter.limit("25/minute")
 @router.post("/customer/payment/verify")
-def verify_payment(verify_request: PaymentVerifyRequest, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def verify_payment(verify_request: PaymentVerifyRequest, request: Request, db: Session = Depends(get_db)):
     try:
         from backend.bakong import BakongService, BakongConfig
         
