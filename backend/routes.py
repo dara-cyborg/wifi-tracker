@@ -192,18 +192,13 @@ def check_auth(request: Request):
     session_cookie = request.cookies.get("session")
     
     if not session_cookie:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        return {"authenticated": False}
     
     try:
-        session_data = serializer.loads(session_cookie, max_age=SESSION_COOKIE_MAX_AGE)
-        return {
-            "status": "authenticated",
-            "username": session_data.get("username")
-        }
-    except SignatureExpired:
-        raise HTTPException(status_code=401, detail="Session expired")
-    except BadSignature:
-        raise HTTPException(status_code=401, detail="Invalid session")
+        serializer.loads(session_cookie, max_age=SESSION_COOKIE_MAX_AGE)
+        return {"authenticated": True}
+    except (SignatureExpired, BadSignature):
+        return {"authenticated": False}
 
 @limiter.limit("60/minute")
 @router.post("/admin/logout")
@@ -353,7 +348,7 @@ def send_alert(request: Request, user: dict = Depends(get_current_user), db: Ses
 
 @limiter.limit("60/minute")
 @router.post("/customer/payment/generate-qr/{room_number}")
-def generate_payment_qr(room_number: str, request: Request, db: Session = Depends(get_db)):
+def generate_payment_qr(room_number: str, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         from backend.bakong import BakongService, BakongConfig
         
@@ -462,7 +457,7 @@ def generate_payment_qr(room_number: str, request: Request, db: Session = Depend
 
 @limiter.limit("60/minute")
 @router.get("/customer/pricing/{room_number}")
-def get_room_pricing(room_number: str, request: Request, db: Session = Depends(get_db)):
+def get_room_pricing(room_number: str, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         client = db.query(Client).filter(Client.room_number == room_number).first()
         if not client:
@@ -494,7 +489,7 @@ def get_room_pricing(room_number: str, request: Request, db: Session = Depends(g
 
 @limiter.limit("25/minute")
 @router.post("/customer/payment/verify")
-def verify_payment(verify_request: PaymentVerifyRequest, request: Request, db: Session = Depends(get_db)):
+def verify_payment(verify_request: PaymentVerifyRequest, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         from backend.bakong import BakongService, BakongConfig
         

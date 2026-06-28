@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
@@ -8,8 +8,9 @@ import os
 import logging
 from slowapi.errors import RateLimitExceeded
 from starlette.responses import JSONResponse
+from itsdangerous import SignatureExpired, BadSignature
 from backend.database import init_db
-from backend.routes import router
+from backend.routes import router, serializer, SESSION_COOKIE_MAX_AGE
 from backend.scheduler import start_scheduler, stop_scheduler
 from backend.security import limiter
 
@@ -80,7 +81,16 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down WiFi Tracker application")
     stop_scheduler()
 
-app = FastAPI(title="WiFi Payment Tracker", lifespan=lifespan)
+environment = os.getenv("ENVIRONMENT", "development").lower()
+is_production = environment == "production"
+
+app = FastAPI(
+    title="WiFi Payment Tracker",
+    lifespan=lifespan,
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
+)
 
 app.state.limiter = limiter
 
@@ -117,24 +127,29 @@ def root():
     return FileResponse(os.path.join(templates_path, "status.html"))
 
 
+def is_admin_authenticated(request: Request) -> bool:
+    session_cookie = request.cookies.get("session")
+    if not session_cookie:
+        return False
+
+    try:
+        serializer.loads(session_cookie, max_age=SESSION_COOKIE_MAX_AGE)
+        return True
+    except (SignatureExpired, BadSignature):
+        return False
+
+
 @app.get("/admin")
-def admin_panel():
+def admin_panel(request: Request):
+    if not is_admin_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
     return FileResponse(os.path.join(templates_path, "index.html"))
 
 
 @app.get("/admin/login")
 def login_page():
     return FileResponse(os.path.join(templates_path, "login.html"))
-
-
-@app.get("/admin/add")
-def add_client():
-    return FileResponse(os.path.join(templates_path, "add.html"))
-
-
-@app.get("/admin/edit")
-def edit_client():
-    return FileResponse(os.path.join(templates_path, "edit.html"))
 
 
 if __name__ == "__main__":
