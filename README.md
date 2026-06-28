@@ -38,8 +38,8 @@ wifi-tracker/
 │   │   └── app.js
 │   └── templates/
 │       ├── index.html    # Client list
-│       ├── add.html      # Add client form
-│       └── edit.html     # Edit client form
+│       ├── login.html    # Admin login page
+│       └── status.html   # Public status page
 ├── run.py                # Entry point to start server
 ├── requirements.txt      # Python dependencies
 └── .env.example          # Environment variables template
@@ -86,12 +86,9 @@ Server starts at `http://localhost:8000`
 ### Web Interface
 
 - **`http://localhost:8000`** - View all clients
-- **`http://localhost:8000/add.html`** - Add new client
 - **`http://localhost:8000/`** - Public client status page (no login required)
 - **`http://localhost:8000/admin`** - Admin panel (requires login)
 - **`http://localhost:8000/admin/login`** - Admin login page
-- **`http://localhost:8000/admin/add`** - Add client (admin only)
-- **`http://localhost:8000/admin/edit`** - Edit client (admin only)
 
 ### API Endpoints
 
