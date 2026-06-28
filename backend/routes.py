@@ -346,9 +346,9 @@ def send_alert(request: Request, user: dict = Depends(get_current_user), db: Ses
             detail=f"Error sending alert: {str(e)}"
         )
 
-@limiter.limit("60/minute")
+@limiter.limit("10/minute")
 @router.post("/customer/payment/generate-qr/{room_number}")
-def generate_payment_qr(room_number: str, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def generate_payment_qr(room_number: str, request: Request, db: Session = Depends(get_db)):
     try:
         from backend.bakong import BakongService, BakongConfig
         
