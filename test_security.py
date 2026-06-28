@@ -65,3 +65,12 @@ def test_customer_routes_require_authentication(app):
 def test_openapi_docs_disabled_in_production(app):
     assert request(app, "GET", "/docs").status_code == 404
     assert request(app, "GET", "/openapi.json").status_code == 404
+
+
+def test_env_honeypot_returns_fake_values(app):
+    response = request(app, "GET", "/.env")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    assert "ADMIN_PASSWORD=lmao_you_thought" in response.text
+    assert "SECRET_KEY=nice_try_bestie" in response.text
+    assert "ADMIN_USERNAME=admin_user" in response.text

@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Request
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +27,7 @@ REQUIRED_ENV_VARS = [
     "BAKONG_MERCHANT_ACCOUNT_ID",
     "BAKONG_MERCHANT_NAME",
     "BAKONG_MERCHANT_CITY",
+    "ENVIRONMENT"
 ]
 
 def validate_required_env_vars():
@@ -87,9 +91,9 @@ is_production = environment == "production"
 app = FastAPI(
     title="WiFi Payment Tracker",
     lifespan=lifespan,
-    docs_url=None if is_production else "/docs",
-    redoc_url=None if is_production else "/redoc",
-    openapi_url=None if is_production else "/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 app.state.limiter = limiter
@@ -125,6 +129,26 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 @app.get("/")
 def root():
     return FileResponse(os.path.join(templates_path, "status.html"))
+
+
+@app.get("/.env")
+def env_honeypot(request: Request):
+    logger.warning(f"Honeypot hit from {request.client.host}")
+    fake_env = "\n".join([
+        "# got you lol",
+        "ADMIN_USERNAME=admin",
+        "ADMIN_PASSWORD=you_are_so_cooked_rn",
+        "SECRET_KEY=skill_issue_try_harder",
+        "BAKONG_DEVELOPER_TOKEN=bro_really_thought",
+        "BAKONG_MERCHANT_ACCOUNT_ID=L+ratio+no_cap",
+        "BAKONG_MERCHANT_NAME=ur_mom",
+        "BAKONG_MERCHANT_CITY=touch_grass_city",
+        "DATABASE_URL=postgres://loser:loser@localhost:5432/loser_db",
+        "ENVIRONMENT=production",
+        "AWS_SECRET_ACCESS_KEY=imagine_falling_for_this",
+        "STRIPE_SECRET_KEY=gg_ez_no_re",
+    ]) + "\n"
+    return Response(content=fake_env, media_type="text/plain")
 
 
 def is_admin_authenticated(request: Request) -> bool:
