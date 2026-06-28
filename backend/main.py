@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Request
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +27,7 @@ REQUIRED_ENV_VARS = [
     "BAKONG_MERCHANT_ACCOUNT_ID",
     "BAKONG_MERCHANT_NAME",
     "BAKONG_MERCHANT_CITY",
+    "ENVIRONMENT"
 ]
 
 def validate_required_env_vars():
@@ -87,9 +91,9 @@ is_production = environment == "production"
 app = FastAPI(
     title="WiFi Payment Tracker",
     lifespan=lifespan,
-    docs_url=None if is_production else "/docs",
-    redoc_url=None if is_production else "/redoc",
-    openapi_url=None if is_production else "/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 app.state.limiter = limiter
