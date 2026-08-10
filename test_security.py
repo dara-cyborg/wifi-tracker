@@ -11,16 +11,10 @@ def app(monkeypatch):
     monkeypatch.setenv("ADMIN_USERNAME", "admin")
     monkeypatch.setenv("ADMIN_PASSWORD", "password")
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
-    monkeypatch.setenv("BAKONG_DEVELOPER_TOKEN", "token")
-    monkeypatch.setenv("BAKONG_MERCHANT_ACCOUNT_ID", "account")
-    monkeypatch.setenv("BAKONG_MERCHANT_NAME", "merchant")
-    monkeypatch.setenv("BAKONG_MERCHANT_CITY", "Phnom Penh")
     monkeypatch.setenv("ENVIRONMENT", "production")
 
     import backend.main as main_module
-    import backend.routes as routes_module
 
-    importlib.reload(routes_module)
     importlib.reload(main_module)
     return main_module.app
 
@@ -51,15 +45,15 @@ def test_removed_admin_pages_are_not_available(app):
     assert request(app, "GET", "/admin/edit").status_code == 404
 
 
-def test_customer_routes_require_authentication(app):
+def test_customer_payment_routes_are_removed(app):
     qr_response = request(app, "POST", "/customer/payment/generate-qr/1")
-    assert qr_response.status_code == 401
+    assert qr_response.status_code == 404
 
     verify_response = request(app, "POST", "/customer/payment/verify", json={})
-    assert verify_response.status_code == 401
+    assert verify_response.status_code == 404
 
     pricing_response = request(app, "GET", "/customer/pricing/1")
-    assert pricing_response.status_code == 401
+    assert pricing_response.status_code == 404
 
 
 def test_openapi_docs_disabled_in_production(app):
