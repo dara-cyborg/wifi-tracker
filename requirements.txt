@@ -9,5 +9,4 @@ pytz
 python-dotenv
 itsdangerous
 slowapi
-bakong-khqr
 httpx
