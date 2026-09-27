@@ -3,35 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WiFi Tracker - Login</title>
+    <meta name="theme-color" content="#f4f6f3">
+    <title>WiFi Tracker | Sign in</title>
     <link rel="stylesheet" href="/static/styles.css">
-    <style>
-        body { display: flex; align-items: center; justify-content: center; }
-        .login-container { width: 100%; max-width: 400px; padding: 20px; }
-        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .login-card h1 { font-size: 24px; margin-bottom: 8px; text-align: center; }
-        .login-card p { text-align: center; color: #666; margin-bottom: 32px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 8px; color: #000; font-weight: 600; font-size: 14px; }
-        .form-group input { width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; }
-        .form-group input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
-        .form-group input::placeholder { color: #999; }
-        .login-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif; transition: all 0.3s ease; }
-        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .alert { padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 500; border-left: 4px solid; display: none; }
-        .alert.show { display: block; }
-        .alert-danger { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b; border-left-color: #dc2626; }
-        .loading { display: none; text-align: center; color: #666; font-size: 13px; margin-top: 8px; }
-    </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <h1>WiFi Tracker</h1>
-            <p>Admin Login</p>
+    <main class="login-shell">
+        <section class="login-panel" aria-labelledby="loginTitle">
+            <div class="login-heading">
+                <h1 id="loginTitle">WiFi Tracker</h1>
+                <p class="page-subtitle">Sign in to manage client accounts</p>
+            </div>
             
-            <div id="message" class="alert"></div>
+            <div id="message" class="alert" role="alert" aria-live="polite"></div>
             
             <form id="loginForm" onsubmit="handleLogin(event)">
                 <div class="form-group">
@@ -42,11 +26,11 @@
                     <label for="password">Password</label>
                     <input type="password" id="password" required placeholder="Enter password" autocomplete="current-password">
                 </div>
-                <button type="submit" class="login-btn" id="loginBtn">Login</button>
+                <button type="submit" class="btn btn-primary login-btn" id="loginBtn">Sign in</button>
                 <div class="loading" id="loading">Logging in...</div>
             </form>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script>
         async function handleLogin(e) {

@@ -67,6 +67,31 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     validate_required_env_vars()
+    # Startup sanity information to help diagnose deployment issues (db path, cwd)
+    try:
+        logger.info("Working directory: %s", os.getcwd())
+        db_url = os.getenv("DATABASE_URL")
+        logger.info("DATABASE_URL: %s", db_url)
+        if db_url and db_url.startswith("sqlite"):
+            if db_url.startswith("sqlite:///"):
+                db_path = db_url.replace("sqlite:///", "")
+            elif db_url.startswith("sqlite://"):
+                db_path = db_url.replace("sqlite://", "")
+            else:
+                db_path = db_url
+            db_path = os.path.abspath(db_path)
+            if os.path.exists(db_path):
+                try:
+                    with open(db_path, "rb") as f:
+                        head = f.read(16)
+                    logger.info("DB file %s exists size=%d header=%s", db_path, os.path.getsize(db_path), head[:16])
+                except Exception as _:
+                    logger.warning("Unable to read DB file %s for header info", db_path)
+            else:
+                logger.warning("DB file %s does not exist", db_path)
+    except Exception:
+        logger.exception("Failed to log startup filesystem state")
+
     logger.info("Starting WiFi Tracker application")
     start_scheduler()
     yield
