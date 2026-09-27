@@ -23,6 +23,10 @@ class LoginRequest:
         self.password = password
 
 
+def require_admin(request: Request):
+    return validate_session_cookie(request.cookies.get("session"))
+
+
 @router.post("/admin/login")
 @limiter.limit("10/minute")
 def login(request: Request, login_request: dict, response: Response):
@@ -53,37 +57,37 @@ def logout(request: Request, response: Response):
     return {"status": "success", "message": "Logged out"}
 
 
-@router.get("/admin/clients")
+@router.get("/admin/clients", dependencies=[Depends(require_admin)])
 @limiter.limit("60/minute")
 def list_clients_endpoint(request: Request, search: str = Query(None), db: Session = Depends(get_db)):
     return list_clients(db, search)
 
 
-@router.post("/admin/clients")
+@router.post("/admin/clients", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 def create_client_endpoint(request: Request, client: dict, db: Session = Depends(get_db)):
     return create_client_service(db, type("ClientData", (), client)())
 
 
-@router.get("/admin/clients/{mac}")
+@router.get("/admin/clients/{mac}", dependencies=[Depends(require_admin)])
 @limiter.limit("60/minute")
 def get_client_endpoint(request: Request, mac: str, db: Session = Depends(get_db)):
     return get_client_by_mac_service(db, mac)
 
 
-@router.put("/admin/clients/{mac}")
+@router.put("/admin/clients/{mac}", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 def update_client_endpoint(request: Request, mac: str, update_data: dict, db: Session = Depends(get_db)):
     return update_client_service(db, mac, type("UpdateData", (), update_data)())
 
 
-@router.delete("/admin/clients/{mac}")
+@router.delete("/admin/clients/{mac}", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 def delete_client_endpoint(request: Request, mac: str, db: Session = Depends(get_db)):
     return delete_client_service(db, mac)
 
 
-@router.post("/admin/send-alert")
+@router.post("/admin/send-alert", dependencies=[Depends(require_admin)])
 @limiter.limit("5/minute")
 def send_alert(request: Request, db: Session = Depends(get_db)):
     try:

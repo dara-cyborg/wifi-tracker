@@ -13,7 +13,7 @@ def app(monkeypatch):
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
     monkeypatch.setenv("ENVIRONMENT", "production")
 
-    import backend.main as main_module
+    import backend.app as main_module
 
     importlib.reload(main_module)
     return main_module.app
@@ -32,6 +32,45 @@ def test_admin_auth_check_returns_boolean_when_unauthenticated(app):
     response = request(app, "GET", "/admin/auth/check")
     assert response.status_code == 200
     assert response.json() == {"authenticated": False}
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "payload"),
+    [
+        ("GET", "/admin/clients", None),
+        ("POST", "/admin/clients", {}),
+        ("GET", "/admin/clients/00:11:22:33:44:55", None),
+        ("PUT", "/admin/clients/00:11:22:33:44:55", {}),
+        ("DELETE", "/admin/clients/00:11:22:33:44:55", None),
+        ("POST", "/admin/send-alert", None),
+    ],
+)
+def test_admin_data_routes_require_authentication(app, method, path, payload):
+    options = {"json": payload} if payload is not None else {}
+    response = request(app, method, path, **options)
+    assert response.status_code == 401
+
+
+def test_admin_client_list_allows_valid_session(app, monkeypatch):
+    from backend.api.routes import admin as admin_routes
+
+    monkeypatch.setattr(admin_routes, "list_clients", lambda db, search: [])
+    login_response = request(
+        app,
+        "POST",
+        "/admin/login",
+        json={"username": "admin", "password": "password"},
+    )
+    assert login_response.status_code == 200
+
+    response = request(
+        app,
+        "GET",
+        "/admin/clients",
+        cookies=login_response.cookies,
+    )
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
 
 
 def test_admin_root_redirects_to_login_when_unauthenticated(app):
